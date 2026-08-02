@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/tech-titans-tracker/static/css/main.e6c13ad2.css",
-    "main.js": "/tech-titans-tracker/static/js/main.5d453948.js",
+    "main.js": "/tech-titans-tracker/static/js/main.ecf14013.js",
     "static/js/453.1d092aa4.chunk.js": "/tech-titans-tracker/static/js/453.1d092aa4.chunk.js",
     "index.html": "/tech-titans-tracker/index.html",
     "main.e6c13ad2.css.map": "/tech-titans-tracker/static/css/main.e6c13ad2.css.map",
-    "main.5d453948.js.map": "/tech-titans-tracker/static/js/main.5d453948.js.map",
+    "main.ecf14013.js.map": "/tech-titans-tracker/static/js/main.ecf14013.js.map",
     "453.1d092aa4.chunk.js.map": "/tech-titans-tracker/static/js/453.1d092aa4.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.e6c13ad2.css",
-    "static/js/main.5d453948.js"
+    "static/js/main.ecf14013.js"
   ]
 }
