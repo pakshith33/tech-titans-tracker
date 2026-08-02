@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/tech-titans-tracker/static/css/main.f855e6bc.css",
-    "main.js": "/tech-titans-tracker/static/js/main.cf7634e1.js",
+    "main.css": "/tech-titans-tracker/static/css/main.e6c13ad2.css",
+    "main.js": "/tech-titans-tracker/static/js/main.5d453948.js",
     "static/js/453.1d092aa4.chunk.js": "/tech-titans-tracker/static/js/453.1d092aa4.chunk.js",
     "index.html": "/tech-titans-tracker/index.html",
-    "main.f855e6bc.css.map": "/tech-titans-tracker/static/css/main.f855e6bc.css.map",
-    "main.cf7634e1.js.map": "/tech-titans-tracker/static/js/main.cf7634e1.js.map",
+    "main.e6c13ad2.css.map": "/tech-titans-tracker/static/css/main.e6c13ad2.css.map",
+    "main.5d453948.js.map": "/tech-titans-tracker/static/js/main.5d453948.js.map",
     "453.1d092aa4.chunk.js.map": "/tech-titans-tracker/static/js/453.1d092aa4.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.f855e6bc.css",
-    "static/js/main.cf7634e1.js"
+    "static/css/main.e6c13ad2.css",
+    "static/js/main.5d453948.js"
   ]
 }
