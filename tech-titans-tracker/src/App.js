@@ -87,35 +87,59 @@ function computeTournamentStats(t) {
   return { numMatches, costPerMatch, perMatch, paidTotal, playerStats, balances };
 }
 
+// Builds a UPI deep link (upi://pay?...) that opens PhonePe/GPay/any UPI app
+// directly with the payee and amount pre-filled, so the player doesn't have
+// to type anything manually. Returns "" if the treasurer has no UPI ID set.
+function buildUpiPaymentLink({ vpa, payeeName, amount, note }) {
+  if (!vpa) return "";
+  const params = new URLSearchParams({
+    pa: vpa,
+    pn: payeeName || "Treasurer",
+    am: String(amount),
+    cu: "INR",
+  });
+  if (note) params.set("tn", note);
+  return `upi://pay?${params.toString()}`;
+}
+
 // ⚠️ NEW: Centralized Settlement Logic replacing P2P computeSettlement
 function computeCentralizedSettlement(t, stats, playersById) {
   const treasurer = playersById[t.treasurerId];
   const treasurerName = treasurer ? treasurer.name : "the Treasurer";
   const treasurerMobile = treasurer?.mobile || "";
-  const treasurerPayInfo = treasurerMobile
-    ? `Please send this amount directly to our Treasurer, ${treasurerName}, at ${treasurerMobile}.`
-    : `Please send this amount directly to our Treasurer, ${treasurerName}.`;
-  const treasurerRefundInfo = treasurerMobile
-    ? `${treasurerName} (${treasurerMobile}) will transfer this refund to you shortly.`
-    : `${treasurerName} will transfer this refund to you shortly.`;
+  const treasurerUpiId = treasurer?.upiId || "";
 
   return stats.balances.map(b => {
-    let exactAmount = Math.abs(b.balance).toFixed(0);
-    let message = "";
     const player = playersById[b.playerId];
+    const exactAmount = Math.abs(b.balance).toFixed(0);
 
+    const matchLines = (b.matches && b.matches.length)
+      ? b.matches.map((m) => `↣ ${m.name} ➤ Match Fee: ${inr(m.perPlayer)}`).join("\n")
+      : "(no matches recorded yet)";
+
+    const header = `Hi ${player?.name},\n\nYou have played the following match(es) in ${t.name}:\n${matchLines}\n\nTotal Cost For All Matches: ${inr(b.owed)}\nYou have paid a total of: ${inr(b.paid)}\nTotal Amount Due: ${inr(b.balance)}`;
+
+    const upiLink = buildUpiPaymentLink({
+      vpa: treasurerUpiId, payeeName: treasurerName, amount: exactAmount, note: `${t.name} fee`,
+    });
+
+    let closing;
     if (b.balance > 1) {
-      message = `Hi ${player?.name},\n\nYour ${t.name} fee breakdown is ready.\n\nYou owe ${inr(b.balance)}. ${treasurerPayInfo}\n\nMatches played: ${b.matches.length}\nTotal allocated to you: ${inr(b.owed)}\nAmount already paid: ${inr(b.paid)}\n\nThank you for being part of Tech Titans!\n\n— Tech Titans`;
+      const payLine = upiLink
+        ? `Pay now via UPI: ${upiLink}\n(or PhonePe/GPay to ${treasurerMobile || treasurerName} and share the screenshot)`
+        : `Please send this to our Treasurer, ${treasurerName}${treasurerMobile ? ` (${treasurerMobile})` : ""}, via PhonePe/GPay and share the screenshot.`;
+      closing = `\n\n${payLine}\n\nThanks,\n${treasurerName}`;
     } else if (b.balance < -1) {
-      message = `Hi ${player?.name},\n\nYour ${t.name} fee breakdown is ready.\n\nYou overpaid by ${inr(-b.balance)}. ${treasurerRefundInfo}\n\nMatches played: ${b.matches.length}\nTotal allocated to you: ${inr(b.owed)}\nAmount already paid: ${inr(b.paid)}\n\nThank you for your patience and for being part of Tech Titans!\n\n— Tech Titans`;
+      closing = `\n\n${treasurerName}${treasurerMobile ? ` (${treasurerMobile})` : ""} will transfer this refund to you shortly.\n\nThanks,\n${treasurerName}`;
     } else {
-      message = `Hi ${player?.name},\n\nYour ${t.name} fee breakdown is ready. Your balance is fully settled — no payment needed.\n\nMatches played: ${b.matches.length}\nTotal allocated to you: ${inr(b.owed)}\nAmount already paid: ${inr(b.paid)}\n\nThank you for being part of Tech Titans!\n\n— Tech Titans`;
+      closing = `\n\nYou're fully settled — no payment needed. Thanks for being part of Tech Titans!\n\n${treasurerName}`;
     }
 
+    const message = header + closing;
     const waNumber = formatWhatsAppNumber(player?.mobile);
     const whatsappLink = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
 
-    return { ...b, exactAmount, message, whatsappLink };
+    return { ...b, exactAmount, message, whatsappLink, upiLink: b.balance > 1 ? upiLink : "" };
   });
 }
 
@@ -563,14 +587,19 @@ function PlayersTab({ players, tournaments, onSave, onDelete, showToast }) {
 function PlayerFormBody({ initial, onSave }) {
   const [name, setName] = useState(initial?.name || "");
   const [mobile, setMobile] = useState(initial?.mobile || "");
+  const [upiId, setUpiId] = useState(initial?.upiId || "");
   const [active, setActive] = useState(initial?.active ?? true);
   const canSave = name.trim() && mobile.trim();
   return (
     <>
       <Field label="Name"><input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="Player name" /></Field>
       <Field label="Mobile number"><input style={inputStyle} value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="e.g. 9876543210" /></Field>
+      <Field label="UPI ID (only needed if this player will be a Treasurer)">
+        <input style={inputStyle} value={upiId} onChange={(e) => setUpiId(e.target.value)} placeholder="e.g. name@upi or 9876543210@ybl" />
+        <div style={{ fontSize: 11.5, color: "#8A836E", marginTop: 4 }}>Lets players pay them with one tap via PhonePe/GPay instead of typing the amount manually.</div>
+      </Field>
       <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, fontSize: 14, fontWeight: 600 }}><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Active player</label>
-      <Btn style={{ width: "100%", justifyContent: "center" }} disabled={!canSave} onClick={() => canSave && onSave({ name: name.trim(), mobile: mobile.trim(), active })}><Check size={16} /> Save Player</Btn>
+      <Btn style={{ width: "100%", justifyContent: "center" }} disabled={!canSave} onClick={() => canSave && onSave({ name: name.trim(), mobile: mobile.trim(), upiId: upiId.trim(), active })}><Check size={16} /> Save Player</Btn>
     </>
   );
 }
@@ -704,8 +733,11 @@ function TournamentDetail({
           {tournament.status !== "Completed" ? <EmptyState icon={MessageCircle} title="Mark tournament as Completed" sub="WhatsApp summaries generate once the tournament is finished." /> : centralizedSettlement.length === 0 ? <EmptyState icon={MessageCircle} title="No player data yet" sub="Add matches and participants first." /> : centralizedSettlement.map((b) => {
             return (
               <Card key={b.playerId} style={{ padding: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div style={{ fontWeight: 700 }}>{playersById[b.playerId]?.name}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 6 }}>
+                  <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                    {playersById[b.playerId]?.name}
+                    {b.upiLink && <Pill tone="green"><IndianRupee size={11} style={{ marginRight: 3, display: "inline" }} />UPI link included</Pill>}
+                  </div>
                   <a href={b.whatsappLink} target="_blank" rel="noopener noreferrer" style={{ background: "#25D366", color: "#fff", border: "none", borderRadius: 8, padding: "6px 10px", display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, cursor: "pointer", textDecoration: "none" }}><MessageCircle size={13} /> Send</a>
                 </div>
                 <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: 12.5, margin: 0, color: "#5C5647", background: "var(--pitch-cream)", padding: 10, borderRadius: 8 }}>{b.message}</pre>
