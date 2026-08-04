@@ -90,6 +90,12 @@ function computeTournamentStats(t) {
 // Builds a UPI deep link (upi://pay?...) that opens PhonePe/GPay/any UPI app
 // directly with the payee and amount pre-filled, so the player doesn't have
 // to type anything manually. Returns "" if the treasurer has no UPI ID set.
+//
+// NOTE: this generic "upi://" scheme works great on Android (the OS shows a
+// picker of every installed UPI app), but iOS has no such picker — whichever
+// one app happens to claim the generic scheme (often WhatsApp itself, since
+// it also registers as a UPI handler) silently gets it, with no way for us
+// to control which. See buildUpiAppLinks() below for the iOS-safe fix.
 function buildUpiPaymentLink({ vpa, payeeName, amount, note }) {
   if (!vpa) return "";
   const params = new URLSearchParams({
@@ -100,6 +106,23 @@ function buildUpiPaymentLink({ vpa, payeeName, amount, note }) {
   });
   if (note) params.set("tn", note);
   return `upi://pay?${params.toString()}`;
+}
+
+// Per-app custom URL schemes for the same NPCI UPI intent parameters. Unlike
+// the generic "upi://" scheme, these unambiguously target one specific app,
+// which is required for a reliable experience on iOS (no native app-picker
+// there). Google Pay's iOS scheme is "tez://", not "gpay://" — confirmed via
+// Google's own docs; using "gpay://" silently fails on iOS.
+function buildUpiAppLinks({ vpa, payeeName, amount, note }) {
+  if (!vpa) return [];
+  const params = new URLSearchParams({ pa: vpa, pn: payeeName || "Treasurer", am: String(amount), cu: "INR" });
+  if (note) params.set("tn", note);
+  const qs = params.toString();
+  return [
+    { id: "gpay", label: "Google Pay", url: `tez://upi/pay?${qs}` },
+    { id: "phonepe", label: "PhonePe", url: `phonepe://pay?${qs}` },
+    { id: "paytm", label: "Paytm", url: `paytmmp://pay?${qs}` },
+  ];
 }
 
 // Wraps the same payment details in a link to our own "Pay Now" page
@@ -240,9 +263,20 @@ function parsePayParamsFromHash() {
 }
 
 function PayPage({ params }) {
+  const [copied, setCopied] = useState(false);
   const upiLink = buildUpiPaymentLink({
     vpa: params.vpa, payeeName: params.payeeName, amount: params.amount, note: params.note,
   });
+  const appLinks = buildUpiAppLinks({
+    vpa: params.vpa, payeeName: params.payeeName, amount: params.amount, note: params.note,
+  });
+
+  const copyUpiId = () => {
+    if (navigator.clipboard) navigator.clipboard.writeText(params.vpa).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
   return (
     <div className="ogc-root" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
       <FontLoader />
@@ -254,13 +288,23 @@ function PayPage({ params }) {
       {params.note && <div style={{ color: "#8A836E", fontSize: 13, marginBottom: 22 }}>{params.note}</div>}
       {upiLink ? (
         <>
-          <Btn style={{ padding: "14px 28px", fontSize: 16 }} onClick={() => { window.location.href = upiLink; }}>
-            <IndianRupee size={18} /> Pay Now via UPI
-          </Btn>
-          <div style={{ marginTop: 16, fontSize: 12, color: "#8A836E", maxWidth: 300 }}>
-            Tap to open PhonePe / GPay / any UPI app with the amount pre-filled. If nothing opens, copy this link into your UPI app instead:
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#8A836E", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 10 }}>Choose your UPI app</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 300 }}>
+            {appLinks.map((app) => (
+              <Btn key={app.id} style={{ padding: "13px 24px", fontSize: 15.5, justifyContent: "center" }} onClick={() => { window.location.href = app.url; }}>
+                <IndianRupee size={16} /> Pay via {app.label}
+              </Btn>
+            ))}
+            <Btn variant="outline" style={{ padding: "11px 24px", fontSize: 13.5, justifyContent: "center" }} onClick={() => { window.location.href = upiLink; }}>
+              Other UPI App
+            </Btn>
           </div>
-          <div className="ogc-mono" style={{ marginTop: 8, fontSize: 11, wordBreak: "break-all", background: "var(--card)", border: "1px solid var(--line-soft)", padding: 10, borderRadius: 8, maxWidth: 320 }}>{upiLink}</div>
+          <div style={{ marginTop: 20, fontSize: 12, color: "#8A836E", maxWidth: 300 }}>
+            iPhone tip: if a button above doesn't open the app, or you use a different UPI app, copy this UPI ID and pay manually instead:
+          </div>
+          <button onClick={copyUpiId} className="ogc-mono" style={{ marginTop: 8, fontSize: 13, wordBreak: "break-all", background: "var(--card)", border: "1px solid var(--line-soft)", padding: "10px 14px", borderRadius: 8, maxWidth: 320, cursor: "pointer", color: "var(--pitch-ink)" }}>
+            {params.vpa} {copied ? "— Copied!" : "(tap to copy)"}
+          </button>
         </>
       ) : (
         <div style={{ color: "var(--ball-red)", fontSize: 14 }}>This payment link is missing details. Please ask for a new one.</div>
