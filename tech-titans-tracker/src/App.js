@@ -2,36 +2,23 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Trophy, Users, Wallet, BarChart3, Plus, X, Check, ChevronRight,
   MessageCircle, Download, Trash2, Archive, Search, ArrowLeft, Calendar,
-  IndianRupee, UserPlus, ClipboardCopy, AlertTriangle, CheckCircle2
+  IndianRupee, UserPlus, AlertTriangle, CheckCircle2
 } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
-import { initializeApp } from "firebase/app";
-import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "firebase/firestore";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "firebase/auth";
+import { auth, provider, db } from "./firebase";
+import { collection, onSnapshot, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
+import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 
-// ⚠️ 1. PASTE YOUR FIREBASE CONFIG HERE
-const firebaseConfig = {
-  apiKey: "AIzaSyDt_hM9ShCj29JQt7NZkMn7Bz2J2vRobaY",
-  authDomain: "tech-titans-expense-tracker.firebaseapp.com",
-  projectId: "tech-titans-expense-tracker",
-  storageBucket: "tech-titans-expense-tracker.firebasestorage.app",
-  messagingSenderId: "75576976156",
-  appId: "1:75576976156:web:48401db281aa69370d50d9",
-  measurementId: "G-JVY0L232D2"
+// Access is controlled by Firestore security rules, which only allow a
+// request through when a document exists at admins/{their email}. This
+// check just mirrors that so the UI can show a friendly message instead of
+// a stream of permission-denied errors from Firestore.
+const isTeamMember = async (email) => {
+  if (!email) return false;
+  const snap = await getDoc(doc(db, "admins", email));
+  return snap.exists();
 };
-
-// ⚠️ 2. ADD YOUR TEAMMATES' EXACT GOOGLE EMAILS HERE
-const ALLOWED_EMAILS =[
-  "pakshith33@gmail.com", 
-  "captain@techtitans.com"
-];
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
 
 /* ---------------------------------------------------------------------- */
 /* Fonts & Styling (Tech Titans Theme)                                   */
@@ -208,7 +195,6 @@ export default function App() {
   const [tournaments, setTournaments] = useState([]);
   const [payments, setPayments] = useState([]);
   const [matches, setMatches] = useState([]);
-  const [activeUsers, setActiveUsers] = useState([]);
   
   const [tab, setTab] = useState("dashboard");
   const [openTournamentId, setOpenTournamentId] = useState(null);
@@ -232,12 +218,19 @@ export default function App() {
 
   // Auth Listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        if (ALLOWED_EMAILS.includes(currentUser.email)) {
-          setUser(currentUser); setAuthError("");
-        } else {
-          signOut(auth); setAuthError("Access Denied: You are not authorized to view the Tech Titans tracker.");
+        try {
+          const allowed = await isTeamMember(currentUser.email);
+          if (allowed) {
+            setUser(currentUser); setAuthError("");
+          } else {
+            await signOut(auth);
+            setAuthError("Access Denied: You are not authorized to view the Tech Titans tracker.");
+          }
+        } catch (error) {
+          await signOut(auth);
+          setAuthError("Couldn't verify access. Please try signing in again.");
         }
       } else {
         setUser(null);

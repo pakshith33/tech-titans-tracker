@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // A user is allowed if a document exists at admins/{their email}.
+    // The admins collection holds no other data - it exists purely as a
+    // membership check, so it never needs to be listed or read in bulk.
+    function isAllowed() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+    }
+
+    // Signed-in users may only look up their own membership doc - never
+    // list the collection or read anyone else's entry.
+    match /admins/{email} {
+      allow get: if request.auth != null && request.auth.token.email == email;
+    }
+
+    match /players/{id}     { allow read, write: if isAllowed(); }
+    match /tournaments/{id} { allow read, write: if isAllowed(); }
+    match /matches/{id}     { allow read, write: if isAllowed(); }
+    match /payments/{id}    { allow read, write: if isAllowed(); }
+  }
+}
