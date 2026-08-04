@@ -264,6 +264,8 @@ function parsePayParamsFromHash() {
 
 function PayPage({ params }) {
   const [copied, setCopied] = useState(false);
+  const amount = Number(params.amount) || 0;
+  const isLargeAmount = amount > 2000;
   const upiLink = buildUpiPaymentLink({
     vpa: params.vpa, payeeName: params.payeeName, amount: params.amount, note: params.note,
   });
@@ -284,27 +286,65 @@ function PayPage({ params }) {
         <IndianRupee size={32} color="#fff" />
       </div>
       <h1 className="ogc-display" style={{ fontSize: 30, marginBottom: 6 }}>Pay {params.payeeName}</h1>
-      <div className="ogc-mono" style={{ fontSize: 34, fontWeight: 800, marginBottom: 4 }}>{inr(Number(params.amount) || 0)}</div>
-      {params.note && <div style={{ color: "#8A836E", fontSize: 13, marginBottom: 22 }}>{params.note}</div>}
+      <div className="ogc-mono" style={{ fontSize: 34, fontWeight: 800, marginBottom: 4 }}>{inr(amount)}</div>
+      {params.note && <div style={{ color: "#8A836E", fontSize: 13, marginBottom: 12 }}>{params.note}</div>}
+
       {upiLink ? (
         <>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#8A836E", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 10 }}>Choose your UPI app</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 300 }}>
-            {appLinks.map((app) => (
-              <Btn key={app.id} style={{ padding: "13px 24px", fontSize: 15.5, justifyContent: "center" }} onClick={() => { window.location.href = app.url; }}>
-                <IndianRupee size={16} /> Pay via {app.label}
-              </Btn>
-            ))}
-            <Btn variant="outline" style={{ padding: "11px 24px", fontSize: 13.5, justifyContent: "center" }} onClick={() => { window.location.href = upiLink; }}>
-              Other UPI App
-            </Btn>
+          {isLargeAmount && (
+            <div style={{ background: "#FEF3C7", border: "1px solid #F59E0B", borderRadius: 10, padding: "12px 16px", marginBottom: 18, maxWidth: 320 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#92400E", marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <AlertTriangle size={14} /> Amount exceeds ₹2,000
+              </div>
+              <div style={{ fontSize: 11.5, color: "#78350F", lineHeight: 1.4 }}>
+                UPI apps may block payments over ₹2,000 via these buttons (NPCI security rule). Use the <b>manual method below</b> instead.
+              </div>
+            </div>
+          )}
+
+          <div style={{ background: "var(--card)", border: "1.5px solid var(--pitch-green)", borderRadius: 12, padding: 16, marginBottom: 16, maxWidth: 320, width: "100%" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pitch-green-deep)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 10 }}>
+              {isLargeAmount ? "Recommended: Pay Manually" : "Pay via UPI ID (works for any amount)"}
+            </div>
+            <div style={{ fontSize: 12.5, color: "#5C5647", marginBottom: 12, lineHeight: 1.5, textAlign: "left" }}>
+              1. Copy this UPI ID<br/>
+              2. Open your UPI app → "Pay to UPI ID"<br/>
+              3. Paste ID, enter {inr(amount)}, and pay
+            </div>
+            <button onClick={copyUpiId} className="ogc-mono" style={{ width: "100%", fontSize: 14, fontWeight: 700, wordBreak: "break-all", background: copied ? "#D1FAE5" : "var(--pitch-cream)", border: copied ? "1.5px solid #10B981" : "1.5px solid var(--line-soft)", padding: "12px 14px", borderRadius: 8, cursor: "pointer", color: copied ? "#065F46" : "var(--pitch-ink)", transition: "all 0.2s" }}>
+              {params.vpa} {copied ? " ✓ Copied!" : ""}
+            </button>
+            {!copied && <div style={{ fontSize: 11, color: "#8A836E", marginTop: 6 }}>Tap to copy</div>}
           </div>
-          <div style={{ marginTop: 20, fontSize: 12, color: "#8A836E", maxWidth: 300 }}>
-            iPhone tip: if a button above doesn't open the app, or you use a different UPI app, copy this UPI ID and pay manually instead:
-          </div>
-          <button onClick={copyUpiId} className="ogc-mono" style={{ marginTop: 8, fontSize: 13, wordBreak: "break-all", background: "var(--card)", border: "1px solid var(--line-soft)", padding: "10px 14px", borderRadius: 8, maxWidth: 320, cursor: "pointer", color: "var(--pitch-ink)" }}>
-            {params.vpa} {copied ? "— Copied!" : "(tap to copy)"}
-          </button>
+
+          {!isLargeAmount && (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#8A836E", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 10 }}>Or tap to open app directly</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 300 }}>
+                {appLinks.map((app) => (
+                  <Btn key={app.id} variant="outline" style={{ padding: "11px 20px", fontSize: 14, justifyContent: "center" }} onClick={() => { window.location.href = app.url; }}>
+                    Pay via {app.label}
+                  </Btn>
+                ))}
+                <Btn variant="ghost" style={{ padding: "9px 20px", fontSize: 12.5, justifyContent: "center", color: "#8A836E" }} onClick={() => { window.location.href = upiLink; }}>
+                  Other UPI App
+                </Btn>
+              </div>
+            </>
+          )}
+
+          {isLargeAmount && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 11, color: "#8A836E", marginBottom: 8 }}>These may not work for amounts over ₹2,000:</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
+                {appLinks.map((app) => (
+                  <button key={app.id} onClick={() => { window.location.href = app.url; }} style={{ padding: "6px 12px", fontSize: 11, fontWeight: 600, background: "#EDEBE3", border: "none", borderRadius: 6, cursor: "pointer", color: "#6B6552" }}>
+                    Try {app.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <div style={{ color: "var(--ball-red)", fontSize: 14 }}>This payment link is missing details. Please ask for a new one.</div>
