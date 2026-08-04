@@ -1,176 +1,1065 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { auth, provider, db } from './firebase';
-import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
-import './App.css';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import {
+  Trophy, Users, Wallet, BarChart3, Plus, X, Check, ChevronRight,
+  MessageCircle, Download, Trash2, Archive, Search, ArrowLeft, Calendar,
+  IndianRupee, UserPlus, ClipboardCopy, AlertTriangle, CheckCircle2, Upload
+} from "lucide-react";
+import * as XLSX from "xlsx";
 
-// 1. FRONTEND WHITELIST
-const ALLOWED_EMAILS = ["techtitans.admin@gmail.com", "captain@techtitans.com"];
+// --- FIREBASE IMPORTS ---
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "firebase/firestore";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "firebase/auth";
 
-// 2. WHATSAPP FORMATTER (Forces +91 for Indian numbers)
+// ⚠️ 1. PASTE YOUR FIREBASE CONFIG HERE
+const firebaseConfig = {
+  apiKey: "AIzaSyDt_hM9ShCj29JQt7NZkMn7Bz2J2vRobaY",
+  authDomain: "tech-titans-expense-tracker.firebaseapp.com",
+  projectId: "tech-titans-expense-tracker",
+  storageBucket: "tech-titans-expense-tracker.firebasestorage.app",
+  messagingSenderId: "75576976156",
+  appId: "1:75576976156:web:48401db281aa69370d50d9",
+  measurementId: "G-JVY0L232D2"
+};
+
+// ⚠️ 2. ADD YOUR TEAMMATES' EXACT GOOGLE EMAILS HERE
+const ALLOWED_EMAILS =[
+  "pakshith33@gmail.com", 
+  "captain@techtitans.com"
+];
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+/* ---------------------------------------------------------------------- */
+/* Fonts & Styling (Tech Titans Theme)                                   */
+/* ---------------------------------------------------------------------- */
+const FontLoader = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+    :root {
+      --pitch-cream: #F4F5F7; 
+      --pitch-ink: #090C10;   
+      --pitch-green: #F59E0B; /* Titan Orange */
+      --pitch-green-deep: #1F2937; /* Slate Dark Grey */
+      --stump-gold: #FCD34D;  
+      --ball-red: #EF4444;    
+      --line-soft: #E1E4E8;   
+      --card: #FFFFFF;        
+    }
+    .ogc-root { font-family: 'Inter', sans-serif; background: var(--pitch-cream); color: var(--pitch-ink); }
+    .ogc-display { font-family: 'Bebas Neue', 'Inter', sans-serif; letter-spacing: 0.03em; }
+    .ogc-mono { font-family: 'IBM Plex Mono', monospace; }
+    .ogc-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .ogc-scrollbar::-webkit-scrollbar-thumb { background: var(--line-soft); border-radius: 3px; }
+    button, input, select { font-family: inherit; }
+  `}</style>
+);
+
+/* ---------------------------------------------------------------------- */
+/* Helpers & Math                                                        */
+/* ---------------------------------------------------------------------- */
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+const inr = (n) => `₹${Math.round(n).toLocaleString("en-IN")}`;
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+
 const formatWhatsAppNumber = (rawNumber) => {
   if (!rawNumber) return "";
   const cleanNumber = rawNumber.replace(/\D/g, "");
   return cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber;
 };
 
-function App() {
+const normalizeMobile = (raw) => String(raw ?? "").replace(/\D/g, "");
+
+function parsePlayerExcel(file, existingPlayers) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const workbook = XLSX.read(e.target.result, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        if (!sheet) return reject(new Error("Empty file"));
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        if (rows.length < 1) return reject(new Error("Empty file"));
+        const headers = rows[0].map((h) => String(h).trim().toLowerCase());
+        const nameIdx = headers.indexOf("name");
+        const mobileIdx = headers.indexOf("mobile");
+        if (nameIdx === -1 || mobileIdx === -1) return reject(new Error("Header row must include Name and Mobile columns"));
+        const existingMobiles = new Set(existingPlayers.map((p) => normalizeMobile(p.mobile)));
+        const seenInFile = new Set();
+        const newRows = [];
+        const skipped = [];
+        const errors = [];
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          const name = String(row[nameIdx] ?? "").trim();
+          const mobileRaw = String(row[mobileIdx] ?? "").trim();
+          const rowNum = i + 1;
+          if (!name && !mobileRaw) continue;
+          if (!name) { errors.push({ row: rowNum, name, mobile: mobileRaw, reason: "Missing name" }); continue; }
+          if (!mobileRaw) { errors.push({ row: rowNum, name, mobile: mobileRaw, reason: "Missing mobile" }); continue; }
+          const normalized = normalizeMobile(mobileRaw);
+          if (normalized.length < 10) { errors.push({ row: rowNum, name, mobile: mobileRaw, reason: "Mobile must have at least 10 digits" }); continue; }
+          if (existingMobiles.has(normalized)) {
+            skipped.push({ row: rowNum, name, mobile: mobileRaw, reason: "Already exists in database" });
+            continue;
+          }
+          if (seenInFile.has(normalized)) {
+            skipped.push({ row: rowNum, name, mobile: mobileRaw, reason: "Duplicate in file" });
+            continue;
+          }
+          seenInFile.add(normalized);
+          newRows.push({ name, mobile: mobileRaw });
+        }
+        resolve({ newRows, skipped, errors });
+      } catch {
+        reject(new Error("Could not parse Excel file"));
+      }
+    };
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function downloadPlayerTemplate() {
+  const ws = XLSX.utils.aoa_to_sheet([["Name", "Mobile"], ["Raj Kumar", "9876543210"]]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Players");
+  XLSX.writeFile(wb, "player_import_template.xlsx");
+}
+
+function computeTournamentStats(t) {
+  const numMatches = t.matches ? t.matches.length : 0;
+  const costPerMatch = numMatches > 0 ? Math.round(t.totalFee / numMatches) : 0;
+  const perMatch = (t.matches || []).map((m) => {
+    const n = m.participantIds.length;
+    const additionalAmount = Number(m.additionalAmount) || 0;
+    const matchCost = costPerMatch + additionalAmount;
+    const perPlayer = n > 0 ? Math.round(matchCost / n) : 0;
+    return { ...m, cost: matchCost, baseCost: costPerMatch, additionalAmount, perPlayer, participantCount: n };
+  });
+  const paidTotal = (t.payments || []).reduce((s, p) => s + p.amount, 0);
+  const playerStats = {}; 
+  perMatch.forEach((m) => {
+    m.participantIds.forEach((pid) => {
+      if (!playerStats[pid]) playerStats[pid] = { owed: 0, paid: 0, matches: [] };
+      playerStats[pid].owed += m.perPlayer;
+      playerStats[pid].matches.push(m);
+    });
+  });
+  (t.payments || []).forEach((p) => {
+    if (!playerStats[p.playerId]) playerStats[p.playerId] = { owed: 0, paid: 0, matches: [] };
+    playerStats[p.playerId].paid += p.amount;
+  });
+  const balances = Object.entries(playerStats).map(([playerId, s]) => ({
+    playerId, owed: s.owed, paid: s.paid, balance: s.owed - s.paid, matches: s.matches,
+  }));
+  return { numMatches, costPerMatch, perMatch, paidTotal, playerStats, balances };
+}
+
+// ⚠️ NEW: Centralized Settlement Logic replacing P2P computeSettlement
+function computeCentralizedSettlement(t, stats, playersById) {
+  const treasurer = playersById[t.treasurerId];
+  const treasurerName = treasurer ? treasurer.name : "the Treasurer";
+  const treasurerMobile = treasurer?.mobile || "";
+  const treasurerPayInfo = treasurerMobile
+    ? `Please send this amount directly to our Treasurer, ${treasurerName}, at ${treasurerMobile}.`
+    : `Please send this amount directly to our Treasurer, ${treasurerName}.`;
+  const treasurerRefundInfo = treasurerMobile
+    ? `${treasurerName} (${treasurerMobile}) will transfer this refund to you shortly.`
+    : `${treasurerName} will transfer this refund to you shortly.`;
+
+  return stats.balances.map(b => {
+    let exactAmount = Math.abs(b.balance).toFixed(0);
+    let message = "";
+    const player = playersById[b.playerId];
+
+    if (b.balance > 1) {
+      message = `Hi ${player?.name},\n\nYour ${t.name} fee breakdown is ready.\n\nYou owe ${inr(b.balance)}. ${treasurerPayInfo}\n\nMatches played: ${b.matches.length}\nTotal allocated to you: ${inr(b.owed)}\nAmount already paid: ${inr(b.paid)}\n\nThank you for being part of Tech Titans!\n\n— Tech Titans`;
+    } else if (b.balance < -1) {
+      message = `Hi ${player?.name},\n\nYour ${t.name} fee breakdown is ready.\n\nYou overpaid by ${inr(-b.balance)}. ${treasurerRefundInfo}\n\nMatches played: ${b.matches.length}\nTotal allocated to you: ${inr(b.owed)}\nAmount already paid: ${inr(b.paid)}\n\nThank you for your patience and for being part of Tech Titans!\n\n— Tech Titans`;
+    } else {
+      message = `Hi ${player?.name},\n\nYour ${t.name} fee breakdown is ready. Your balance is fully settled — no payment needed.\n\nMatches played: ${b.matches.length}\nTotal allocated to you: ${inr(b.owed)}\nAmount already paid: ${inr(b.paid)}\n\nThank you for being part of Tech Titans!\n\n— Tech Titans`;
+    }
+
+    const waNumber = formatWhatsAppNumber(player?.mobile);
+    const whatsappLink = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
+
+    return { ...b, exactAmount, message, whatsappLink };
+  });
+}
+
+function downloadCSV(filename, rows) {
+  const csv = rows.map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function tournamentCSVRows(t, playersById, stats, centralizedSettlements) {
+  const rows = [];
+  rows.push(["Tournament", t.name], ["Start Date", fmtDate(t.startDate)], ["End Date", fmtDate(t.endDate)], ["Total Fee", t.totalFee], ["Status", t.status], ["Treasurer", playersById[t.treasurerId]?.name || "None"], []);
+  rows.push(["-- Payments --"], ["Player", "Amount", "Date"]);
+  (t.payments || []).forEach((p) => rows.push([playersById[p.playerId]?.name || "?", p.amount, fmtDate(p.date)]));
+  rows.push([], ["-- Matches --"], ["Match", "Date", "Participants", "Base Cost", "Additional", "Total Cost/Match", "Cost/Player"]);
+  stats.perMatch.forEach((m) => rows.push([m.name, fmtDate(m.date), m.participantIds.map((id) => playersById[id]?.name).join("; "), m.baseCost, m.additionalAmount, m.cost, m.perPlayer]));
+  rows.push([], ["-- Settlement --"], ["Player", "Matches Played", "Owed", "Paid", "Balance (+ = owes, - = refund)"]);
+  stats.balances.forEach((b) => rows.push([playersById[b.playerId]?.name || "?", b.matches.length, b.owed, b.paid, b.balance]));
+  rows.push([], ["-- Instructions --"], ["Player", "Message"]);
+  centralizedSettlements.forEach((x) => rows.push([playersById[x.playerId]?.name || "?", x.message.replace(/\n/g, ' ')]));
+  return rows;
+}
+
+/* ---------------------------------------------------------------------- */
+/* UI Atoms                                                              */
+/* ---------------------------------------------------------------------- */
+const Card = ({ children, style, ...rest }) => ( <div style={{ background: "var(--card)", borderRadius: 14, border: "1px solid var(--line-soft)", boxShadow: "0 6px 24px rgba(9, 12, 16, 0.06)", transition: "transform 0.2s ease, box-shadow 0.2s ease", padding: 16, ...style }} {...rest}>{children}</div> );
+const Pill = ({ children, tone = "green" }) => {
+  const tones = { green: { bg: "#FFFBEB", fg: "#B45309" }, gold: { bg: "#FBF0D6", fg: "#7A5A0F" }, red: { bg: "#F6E1DE", fg: "var(--ball-red)" }, grey: { bg: "#EDEBE3", fg: "#665F4E" } };
+  return <span style={{ background: tones[tone].bg, color: tones[tone].fg, fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>{children}</span>;
+};
+const Btn = ({ children, variant = "primary", style, disabled, ...rest }) => {
+  const variants = { primary: { background: "var(--pitch-green)", color: "#fff", border: "none" }, outline: { background: "transparent", color: "var(--pitch-green-deep)", border: "1.5px solid var(--pitch-green)" }, ghost: { background: "transparent", color: "var(--pitch-ink)", border: "none" }, danger: { background: "transparent", color: "var(--ball-red)", border: "1.5px solid var(--ball-red)" }, gold: { background: "var(--stump-gold)", color: "#3B2C08", border: "none" } };
+  return <button disabled={disabled} style={{ ...variants[variant], opacity: disabled ? 0.5 : 1, padding: "9px 16px", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: disabled ? "not-allowed" : "pointer", display: "inline-flex", alignItems: "center", gap: 6, ...style }} {...rest}>{children}</button>;
+};
+const Field = ({ label, children }) => ( <label style={{ display: "block", marginBottom: 12 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#6B6552", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</div>{children}</label> );
+const inputStyle = { width: "100%", padding: "10px 12px", borderRadius: 9, border: "1.5px solid var(--line-soft)", fontSize: 15, background: "#fff", color: "var(--pitch-ink)", boxSizing: "border-box" };
+const Modal = ({ title, onClose, children, wide }) => (
+  <div style={{ position: "fixed", inset: 0, background: "rgba(18,23,17,0.55)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
+    <div className="ogc-scrollbar" style={{ background: "var(--pitch-cream)", width: "100%", maxWidth: wide ? 640 : 460, maxHeight: "88vh", overflowY: "auto", borderRadius: "18px 18px 0 0", padding: 20, boxShadow: "0 -8px 30px rgba(0,0,0,0.25)" }} onClick={(e) => e.stopPropagation()}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div className="ogc-display" style={{ fontSize: 26 }}>{title}</div>
+        <button onClick={onClose} style={{ background: "#EDEBE3", border: "none", borderRadius: 999, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={18} /></button>
+      </div>{children}
+    </div>
+  </div>
+);
+const EmptyState = ({ icon: Icon, title, sub }) => (
+  <div style={{ textAlign: "center", padding: "40px 20px", color: "#8A836E" }}>
+    <Icon size={32} style={{ marginBottom: 10, opacity: 0.6 }} />
+    <div style={{ fontWeight: 700, color: "var(--pitch-ink)" }}>{title}</div>
+    <div style={{ fontSize: 13, marginTop: 4 }}>{sub}</div>
+  </div>
+);
+const SectionTitle = ({ children }) => <div style={{ fontSize: 13, fontWeight: 800, color: "#6B6552", textTransform: "uppercase", letterSpacing: "0.05em", margin: "6px 2px 10px" }}>{children}</div>;
+const StatusPill = ({ status }) => <Pill tone={status === "Completed" ? "gold" : status === "Ongoing" ? "green" : "grey"}>{status}</Pill>;
+const MiniStat = ({ label, value }) => (
+  <div style={{ background: "var(--pitch-cream)", borderRadius: 9, padding: "8px 6px", textAlign: "center" }}>
+    <div className="ogc-mono" style={{ fontWeight: 700, fontSize: 13.5 }}>{value}</div>
+    <div style={{ fontSize: 10, color: "#8A836E", marginTop: 2, textTransform: "uppercase", fontWeight: 700 }}>{label}</div>
+  </div>
+);
+
+/* ---------------------------------------------------------------------- */
+/* Main App                                                              */
+/* ---------------------------------------------------------------------- */
+export default function App() {
   const [user, setUser] = useState(null);
-  const [accessDenied, setAccessDenied] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [authError, setAuthError] = useState("");
   
-  // Database States
   const [players, setPlayers] = useState([]);
   const [tournaments, setTournaments] = useState([]);
-  const [matches, setMatches] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [matches, setMatches] = useState([]);
+  const [activeUsers, setActiveUsers] = useState([]);
   
-  // Active View State
-  const [activeTournament, setActiveTournament] = useState(null);
+  const [tab, setTab] = useState("dashboard");
+  const [openTournamentId, setOpenTournamentId] = useState(null);
+  const [toast, setToast] = useState(null);
 
-  // --- AUTHENTICATION LOGIC ---
+  const showToast = useCallback((msg) => { setToast(msg); setTimeout(() => setToast(null), 2200); }, []);
+
+  const playersById = useMemo(() => Object.fromEntries(players.map((p) => [p.id, p])), [players]);
+
+  const tournamentsWithData = useMemo(() => {
+    return tournaments.map((t) => ({
+      ...t,
+      matches: matches.filter((m) => m.tournamentId === t.id),
+      payments: payments.filter((p) => p.tournamentId === t.id),
+    }));
+  }, [tournaments, matches, payments]);
+
+  const openTournament = useMemo(() => {
+    return tournamentsWithData.find((t) => t.id === openTournamentId);
+  }, [tournamentsWithData, openTournamentId]);
+
+  // Auth Listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         if (ALLOWED_EMAILS.includes(currentUser.email)) {
-          setUser(currentUser);
-          setAccessDenied(false);
+          setUser(currentUser); setAuthError("");
         } else {
-          signOut(auth);
-          setAccessDenied(true);
+          signOut(auth); setAuthError("Access Denied: You are not authorized to view the Tech Titans tracker.");
         }
       } else {
         setUser(null);
       }
+      setAuthChecking(false);
     });
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
-  const handleLogin = () => signInWithPopup(auth, provider);
-  const handleLogout = () => signOut(auth);
-
-  // --- DATA STREAMING (Firestore onSnapshot) ---
+  // Firestore Sync - Atomic Root Collections
   useEffect(() => {
     if (!user) return;
-    
-    const unsubs = [
-      onSnapshot(collection(db, "players"), (snap) => setPlayers(snap.docs.map(d => ({ id: d.id, ...d.data() })))),
-      onSnapshot(collection(db, "tournaments"), (snap) => setTournaments(snap.docs.map(d => ({ id: d.id, ...d.data() })))),
-      onSnapshot(collection(db, "matches"), (snap) => setMatches(snap.docs.map(d => ({ id: d.id, ...d.data() })))),
-      onSnapshot(collection(db, "payments"), (snap) => setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
-    ];
-    
-    return () => unsubs.forEach(unsub => unsub());
+    const unsubPlayers = onSnapshot(collection(db, "players"), (snapshot) => {
+      setPlayers(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+    });
+    const unsubTournaments = onSnapshot(collection(db, "tournaments"), (snapshot) => {
+      setTournaments(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+    });
+    const unsubPayments = onSnapshot(collection(db, "payments"), (snapshot) => {
+      setPayments(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+    });
+    const unsubMatches = onSnapshot(collection(db, "matches"), (snapshot) => {
+      setMatches(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+    });
+    return () => { unsubPlayers(); unsubTournaments(); unsubPayments(); unsubMatches(); };
   }, [user]);
 
-  // --- MATHEMATICAL SETTLEMENT ENGINE ---
-  const settlementData = useMemo(() => {
-    if (!activeTournament || !players.length) return [];
+  // Database Handlers
+  const firebaseSavePlayer = async (playerData) => {
+    const id = playerData.id || uid();
+    await setDoc(doc(db, "players", id), { ...playerData, id });
+  };
+  const firebaseDeletePlayer = async (id) => { await deleteDoc(doc(db, "players", id)); };
 
-    // Filter matches and payments for the active tournament
-    const tourneyMatches = matches.filter(m => m.tournamentId === activeTournament.id);
-    const tourneyPayments = payments.filter(p => p.tournamentId === activeTournament.id);
+  const firebaseSaveTournament = async (tournData) => {
+    const id = tournData.id || uid();
+    const { matches: m, payments: p, ...metadata } = tournData; 
+    await setDoc(doc(db, "tournaments", id), { ...metadata, id });
+  };
 
-    // Identify the Treasurer
-    const treasurer = players.find(p => p.id === activeTournament.treasurerId);
-    const treasurerName = treasurer ? treasurer.name : "the Treasurer";
+  const firebaseDeleteTournament = async (id) => {
+    await deleteDoc(doc(db, "tournaments", id));
+    const assocPayments = payments.filter(p => p.tournamentId === id);
+    for (const pay of assocPayments) await deleteDoc(doc(db, "payments", pay.id));
+    const assocMatches = matches.filter(m => m.tournamentId === id);
+    for (const mat of assocMatches) await deleteDoc(doc(db, "matches", mat.id));
+  };
 
-    // 1. Calculate Cost Per Match
-    const costPerMatch = tourneyMatches.length > 0 ? (activeTournament.totalFee / tourneyMatches.length) : 0;
+  const firebaseSavePayment = async (paymentData) => {
+    const id = paymentData.id || uid();
+    await setDoc(doc(db, "payments", id), { ...paymentData, id });
+  };
+  const firebaseDeletePayment = async (id) => { await deleteDoc(doc(db, "payments", id)); };
 
-    // 2. Map Player Balances
-    const balances = players.map(player => {
-      // Calculate how much they owe based on attendance
-      let amountOwed = 0;
-      tourneyMatches.forEach(match => {
-        if (match.participantIds.includes(player.id)) {
-          amountOwed += (costPerMatch / match.participantIds.length);
-        }
-      });
+  const firebaseSaveMatch = async (matchData, existingId, tournamentId) => {
+    const id = existingId || matchData.id || uid();
+    await setDoc(doc(db, "matches", id), { ...matchData, id, tournamentId });
+  };
+  const firebaseDeleteMatch = async (id) => { await deleteDoc(doc(db, "matches", id)); };
 
-      // Calculate how much they have already paid
-      const amountPaid = tourneyPayments
-        .filter(p => p.playerId === player.id)
-        .reduce((sum, p) => sum + p.amount, 0);
+  const handleLogin = async () => {
+    try { await signInWithPopup(auth, provider); } 
+    catch (error) { setAuthError("Login failed. Try again."); }
+  };
 
-      const netBalance = amountOwed - amountPaid;
-      let exactAmount = Math.abs(netBalance).toFixed(0);
-      let settlementMessage = "";
+  if (authChecking) return <div className="ogc-root" style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><FontLoader />Loading...</div>;
 
-      // Centralized Treasurer Logic
-      if (netBalance > 1) { // Owes money
-        settlementMessage = `Hi ${player.name}, the tournament fee breakdown is ready. You owe ₹${exactAmount}. Please send this directly to ${treasurerName}.`;
-      } else if (netBalance < -1) { // Overpaid (Refund due)
-        settlementMessage = `Hi ${player.name}, the tournament fee breakdown is ready. You overpaid by ₹${exactAmount}. ${treasurerName} will transfer this refund to you shortly.`;
-      } else {
-        settlementMessage = `Hi ${player.name}, your tournament fee breakdown is ready. Your balance is perfectly settled!`;
-      }
-
-      const waNumber = formatWhatsAppNumber(player.mobile);
-      const waLink = `https://wa.me/${waNumber}?text=${encodeURIComponent(settlementMessage)}`;
-
-      return {
-        ...player,
-        netBalance,
-        message: settlementMessage,
-        whatsappLink: waLink
-      };
-    });
-
-    return balances;
-  }, [activeTournament, players, matches, payments]);
-
-  // --- RENDER UI ---
   if (!user) {
     return (
-      <div className="login-screen">
-        <h1>Tech Titans Tracker</h1>
-        {accessDenied && <p style={{color: 'red'}}>Access Denied. You are not on the whitelist.</p>}
-        <button onClick={handleLogin}>Sign In with Google</button>
+      <div className="ogc-root" style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20 }}>
+        <FontLoader />
+        <div style={{ width: 100, height: 100, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20, overflow: "hidden" }}>
+          <img src={`${process.env.PUBLIC_URL}/logo.png`} style={{ width: "100%", height: "100%", objectFit: "contain" }} alt="Team Logo" />
+        </div>
+        <h1 className="ogc-display" style={{ fontSize: 36, marginBottom: 5 }}>TECH TITANS TRACKER</h1>
+        <p style={{ color: "#6B6552", marginBottom: 30, textAlign: "center" }}>Sign in to manage team expenses and matches.</p>
+        {authError && <div style={{ color: "var(--ball-red)", background: "#F6E1DE", padding: "10px 16px", borderRadius: 8, marginBottom: 20, fontSize: 13, fontWeight: 600, textAlign: "center", maxWidth: 300 }}>{authError}</div>}
+        <Btn onClick={handleLogin} style={{ padding: "12px 24px", fontSize: 16 }}><Users size={18} /> Sign In with Google</Btn>
       </div>
     );
   }
 
   return (
-    <div className="dashboard">
-      <header>
-        <h2>Welcome to Tech Titans, {user.displayName}</h2>
-        <button onClick={handleLogout}>Log Out</button>
-      </header>
-
-      {/* TOURNAMENT SELECTOR (Example simplified view) */}
-      <section>
-        <h3>Active Tournament Data</h3>
-        <select onChange={(e) => setActiveTournament(tournaments.find(t => t.id === e.target.value))}>
-          <option value="">Select Tournament...</option>
-          {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-        </select>
-      </section>
-
-      {/* SETTLEMENT & WHATSAPP DASHBOARD */}
-      {activeTournament && (
-        <section className="settlement-dashboard">
-          <h3>Settlements (Treasurer: {players.find(p => p.id === activeTournament.treasurerId)?.name || 'None Set'})</h3>
-          
-          <div className="ledger">
-            {settlementData.map(record => (
-              <div key={record.id} style={{ border: '1px solid #ccc', margin: '10px', padding: '10px' }}>
-                <p><strong>{record.name}</strong></p>
-                <p>{record.message}</p>
-                <a 
-                  href={record.whatsappLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{ display: 'inline-block', padding: '8px 12px', background: '#25D366', color: '#fff', textDecoration: 'none', borderRadius: '4px' }}
-                >
-                  Send via WhatsApp
-                </a>
-              </div>
-            ))}
+    <div className="ogc-root" style={{ minHeight: "100vh", maxWidth: 480, margin: "0 auto", position: "relative", paddingBottom: 74, boxShadow: "0 0 0 1px var(--line-soft)" }}>
+      <FontLoader />
+      
+      {/* HEADER SECTION WITH LOGO AND LIVE NOTIFICATION */}
+      <div style={{ background: "var(--pitch-green-deep)", color: "#fff", padding: "18px 18px 22px", position: "relative", overflow: "hidden", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ position: "absolute", right: -20, top: -20, width: 110, height: 110, borderRadius: "50%", background: "var(--pitch-green)", opacity: 0.15 }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
+          <div style={{ width: 38, height: 38, borderRadius: 10, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+            <img src={`${process.env.PUBLIC_URL}/logo.png`} style={{ width: "100%", height: "100%", objectFit: "contain" }} alt="Team Logo" />
           </div>
-        </section>
+          <div>
+            <div className="ogc-display" style={{ fontSize: 24, lineHeight: 1 }}>TECH TITANS</div>
+            <div style={{ fontSize: 12, opacity: 0.75, fontWeight: 500 }}>Logged in as {user.email.split('@')[0]}</div>
+          </div>
+        </div>
+        <button onClick={() => signOut(auth)} style={{ position: "relative", background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", padding: "6px 12px", borderRadius: 8, fontSize: 12, cursor: "pointer" }}>Sign Out</button>
+      </div>
+
+      <div style={{ padding: "14px 14px 4px" }}>
+        {openTournament ? (
+          <TournamentDetail
+            tournament={openTournament} players={players} playersById={playersById}
+            onBack={() => setOpenTournamentId(null)}
+            onUpdate={firebaseSaveTournament}
+            onDelete={(id) => { firebaseDeleteTournament(id); setOpenTournamentId(null); showToast("Tournament exported & deleted"); }}
+            showToast={showToast}
+            firebaseSavePlayer={firebaseSavePlayer}
+            firebaseSavePayment={firebaseSavePayment}
+            firebaseDeletePayment={firebaseDeletePayment}
+            firebaseSaveMatch={firebaseSaveMatch}
+            firebaseDeleteMatch={firebaseDeleteMatch}
+          />
+        ) : (
+          <>
+            {tab === "dashboard" && <Dashboard tournaments={tournamentsWithData} players={players} playersById={playersById} onOpenTournament={setOpenTournamentId} />}
+            {tab === "tournaments" && <TournamentsTab tournaments={tournamentsWithData} players={players} onSave={firebaseSaveTournament} onOpen={setOpenTournamentId} showToast={showToast} />}
+            {tab === "players" && <PlayersTab players={players} tournaments={tournamentsWithData} onSave={firebaseSavePlayer} onDelete={firebaseDeletePlayer} showToast={showToast} />}
+            {tab === "reports" && <ReportsTab tournaments={tournamentsWithData} players={players} playersById={playersById} />}
+          </>
+        )}
+      </div>
+
+      {!openTournament && (
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "#fff", borderTop: "1px solid var(--line-soft)", display: "flex", padding: "8px 6px" }}>
+          {[{ id: "dashboard", label: "Dashboard", icon: BarChart3 }, { id: "tournaments", label: "Tournaments", icon: Trophy }, { id: "players", label: "Players", icon: Users }, { id: "reports", label: "Reports", icon: Wallet }].map((it) => {
+            const active = tab === it.id;
+            const Icon = it.icon;
+            return (
+              <button key={it.id} onClick={() => setTab(it.id)} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "6px 2px", color: active ? "var(--pitch-green)" : "#9C9680" }}>
+                <Icon size={20} strokeWidth={active ? 2.4 : 2} />
+                <span style={{ fontSize: 10.5, fontWeight: 700 }}>{it.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {toast && <div style={{ position: "fixed", bottom: 84, left: "50%", transform: "translateX(-50%)", background: "var(--pitch-ink)", color: "#fff", padding: "9px 18px", borderRadius: 999, fontSize: 13, fontWeight: 600, zIndex: 200, maxWidth: "90%", textAlign: "center" }}>{toast}</div>}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Tabs & Components                                                     */
+/* ---------------------------------------------------------------------- */
+function Dashboard({ tournaments, players, playersById, onOpenTournament }) {
+  const active = tournaments.filter((t) => t.status !== "Completed");
+  const completed = tournaments.filter((t) => t.status === "Completed");
+  let pendingSettlements = 0;
+  completed.forEach((t) => {
+    const stats = computeTournamentStats(t);
+    pendingSettlements += stats.balances.filter((b) => Math.round(b.balance) !== 0).length;
+  });
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        <Card><div className="ogc-display" style={{ fontSize: 34, color: "var(--pitch-green)", lineHeight: 1 }}>{active.length}</div><div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6552", marginTop: 4, textTransform: "uppercase" }}>Active Tournaments</div></Card>
+        <Card><div className="ogc-display" style={{ fontSize: 34, color: "#8A6A16", lineHeight: 1 }}>{completed.length}</div><div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6552", marginTop: 4, textTransform: "uppercase" }}>Completed</div></Card>
+        <Card><div className="ogc-display" style={{ fontSize: 34, color: "#5C5647", lineHeight: 1 }}>{players.length}</div><div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6552", marginTop: 4, textTransform: "uppercase" }}>Total Players</div></Card>
+        <Card><div className="ogc-display" style={{ fontSize: 34, color: "var(--ball-red)", lineHeight: 1 }}>{pendingSettlements}</div><div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6552", marginTop: 4, textTransform: "uppercase" }}>Pending Settlements</div></Card>
+      </div>
+      <SectionTitle>Tournament Summary</SectionTitle>
+      {tournaments.length === 0 ? (
+        <EmptyState icon={Trophy} title="No tournaments yet" sub="Create one from the Tournaments tab." />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {tournaments.map((t) => {
+            const stats = computeTournamentStats(t);
+            return (
+              <Card key={t.id} onClick={() => onOpenTournament(t.id)} style={{ cursor: "pointer" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div><div style={{ fontWeight: 800 }}>{t.name}</div><div style={{ fontSize: 12, color: "#8A836E", marginTop: 2 }}>{fmtDate(t.startDate)} · {stats.numMatches} matches</div></div>
+                  <StatusPill status={t.status} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 13 }}>
+                  <span className="ogc-mono">Fee {inr(t.totalFee)}</span><span className="ogc-mono">Collected {inr(stats.paidTotal)}</span>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       )}
     </div>
   );
 }
 
-export default App;
+function TournamentsTab({ tournaments, players, onSave, onOpen, showToast }) {
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [filter, setFilter] = useState("All");
+  const [showArchived, setShowArchived] = useState(false);
+  const visible = tournaments.filter((t) => {
+    if (!!t.archived !== showArchived) return false;
+    if (filter !== "All" && t.status !== filter) return false;
+    return true;
+  });
+
+  const handleSave = (data) => {
+    onSave(editing ? { ...editing, ...data } : { archived: false, ...data });
+    showToast(editing ? "Tournament updated" : "Tournament created");
+    setShowForm(false); setEditing(null);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <SectionTitle>Tournaments</SectionTitle>
+        <Btn onClick={() => { setEditing(null); setShowForm(true); }}><Plus size={16} /> New</Btn>
+      </div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, overflowX: "auto" }}>
+        {["All", "Upcoming", "Ongoing", "Completed"].map((f) => (
+          <button key={f} onClick={() => setFilter(f)} style={{ padding: "6px 12px", borderRadius: 999, border: "1.5px solid var(--line-soft)", fontSize: 12.5, fontWeight: 700, background: filter === f ? "var(--pitch-green)" : "#fff", color: filter === f ? "#fff" : "var(--pitch-ink)", cursor: "pointer", whiteSpace: "nowrap" }}>{f}</button>
+        ))}
+        <button onClick={() => setShowArchived((s) => !s)} style={{ padding: "6px 12px", borderRadius: 999, border: "1.5px solid var(--line-soft)", fontSize: 12.5, fontWeight: 700, background: showArchived ? "var(--stump-gold)" : "#fff", color: "var(--pitch-ink)", cursor: "pointer", whiteSpace: "nowrap", marginLeft: "auto" }}><Archive size={12} style={{ marginRight: 4, display: "inline" }} />{showArchived ? "Archived" : "Active"}</button>
+      </div>
+      {visible.length === 0 ? (
+        <EmptyState icon={Trophy} title={showArchived ? "No archived tournaments" : "No tournaments here"} sub="Try a different filter, or create a new tournament." />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {visible.map((t) => {
+            const stats = computeTournamentStats(t);
+            return (
+              <Card key={t.id}>
+                <div onClick={() => onOpen(t.id)} style={{ cursor: "pointer" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><div style={{ fontWeight: 800 }}>{t.name}</div><StatusPill status={t.status} /></div>
+                  <div style={{ fontSize: 12, color: "#8A836E", margin: "4px 0 8px" }}>{fmtDate(t.startDate)} — {fmtDate(t.endDate)}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span className="ogc-mono">Fee {inr(t.totalFee)}</span><span className="ogc-mono">{stats.numMatches} matches</span><ChevronRight size={16} color="#8A836E" /></div>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 10, borderTop: "1px solid var(--line-soft)", paddingTop: 10 }}>
+                  <Btn variant="ghost" style={{ padding: "5px 8px", fontSize: 12.5 }} onClick={() => { setEditing(t); setShowForm(true); }}>Edit</Btn>
+                  <Btn variant="ghost" style={{ padding: "5px 8px", fontSize: 12.5 }} onClick={() => { onSave({ ...t, archived: !t.archived }); showToast(t.archived ? "Restored from archive" : "Archived"); }}><Archive size={13} /> {t.archived ? "Unarchive" : "Archive"}</Btn>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+      {showForm && (
+        <Modal title={editing ? "Edit Tournament" : "New Tournament"} onClose={() => { setShowForm(false); setEditing(null); }}>
+          <TournamentFormBody players={players} initial={editing} onSave={handleSave} />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function TournamentFormBody({ players, initial, onSave }) {
+  const [name, setName] = useState(initial?.name || "");
+  const [startDate, setStartDate] = useState(initial?.startDate || "");
+  const [endDate, setEndDate] = useState(initial?.endDate || "");
+  const [totalFee, setTotalFee] = useState(initial?.totalFee ?? "");
+  const [status, setStatus] = useState(initial?.status || "Upcoming");
+  const [treasurerId, setTreasurerId] = useState(initial?.treasurerId || "");
+
+  const canSave = name.trim() && startDate && totalFee !== "" && Number(totalFee) > 0 && treasurerId !== "";
+  return (
+    <>
+      <Field label="Tournament name"><input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Summer Corporate League" /></Field>
+      <Field label="Start date"><input type="date" style={inputStyle} value={startDate} onChange={(e) => setStartDate(e.target.value)} /></Field>
+      <Field label="End date (optional)"><input type="date" style={inputStyle} value={endDate} onChange={(e) => setEndDate(e.target.value)} /></Field>
+      <Field label="Total tournament fee (₹)"><input type="number" min="0" style={inputStyle} value={totalFee} onChange={(e) => setTotalFee(e.target.value)} /></Field>
+      <Field label="Designated Treasurer">
+        <select style={inputStyle} value={treasurerId} onChange={(e) => setTreasurerId(e.target.value)}>
+          <option value="">Select a Treasurer...</option>
+          {players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
+      <Field label="Status">
+        <select style={inputStyle} value={status} onChange={(e) => setStatus(e.target.value)}><option>Upcoming</option><option>Ongoing</option><option>Completed</option></select>
+      </Field>
+      <Btn style={{ width: "100%", justifyContent: "center", marginTop: 8 }} disabled={!canSave} onClick={() => canSave && onSave({ name: name.trim(), startDate, endDate, totalFee: Number(totalFee), status, treasurerId })}><Check size={16} /> Save Tournament</Btn>
+    </>
+  );
+}
+
+function PlayerImportModal({ parseResult, onClose, onConfirm, importing }) {
+  const { newRows, skipped, errors } = parseResult;
+  const ImportRow = ({ item, tone }) => (
+    <div style={{ fontSize: 12.5, padding: "6px 0", borderBottom: "1px solid var(--line-soft)", color: tone === "red" ? "var(--ball-red)" : tone === "grey" ? "#8A836E" : "var(--pitch-ink)" }}>
+      <span style={{ fontWeight: 600 }}>Row {item.row}:</span> {item.name || "—"} · {item.mobile || "—"}
+      {item.reason && <span style={{ marginLeft: 6, fontSize: 11.5, opacity: 0.85 }}>({item.reason})</span>}
+    </div>
+  );
+  return (
+    <Modal title="Import Players" onClose={onClose} wide>
+      <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 12 }}>
+        {newRows.length} new · {skipped.length} skipped · {errors.length} error{errors.length !== 1 ? "s" : ""}
+      </div>
+      <button onClick={downloadPlayerTemplate} style={{ background: "none", border: "none", color: "var(--pitch-green-deep)", fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 14, display: "flex", alignItems: "center", gap: 4 }}>
+        <Download size={14} /> Download template
+      </button>
+      {newRows.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#6B6552", textTransform: "uppercase", marginBottom: 6 }}>Ready to import</div>
+          <div className="ogc-scrollbar" style={{ maxHeight: 140, overflowY: "auto", background: "var(--pitch-cream)", borderRadius: 8, padding: "4px 10px" }}>
+            {newRows.map((item, i) => <ImportRow key={i} item={{ row: i + 2, name: item.name, mobile: item.mobile }} />)}
+          </div>
+        </div>
+      )}
+      {skipped.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#6B6552", textTransform: "uppercase", marginBottom: 6 }}>Skipped</div>
+          <div className="ogc-scrollbar" style={{ maxHeight: 100, overflowY: "auto", background: "var(--pitch-cream)", borderRadius: 8, padding: "4px 10px" }}>
+            {skipped.map((item, i) => <ImportRow key={i} item={item} tone="grey" />)}
+          </div>
+        </div>
+      )}
+      {errors.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--ball-red)", textTransform: "uppercase", marginBottom: 6 }}>Errors</div>
+          <div className="ogc-scrollbar" style={{ maxHeight: 100, overflowY: "auto", background: "#F6E1DE", borderRadius: 8, padding: "4px 10px" }}>
+            {errors.map((item, i) => <ImportRow key={i} item={item} tone="red" />)}
+          </div>
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <Btn variant="ghost" style={{ flex: 1, justifyContent: "center" }} onClick={onClose} disabled={importing}>Cancel</Btn>
+        <Btn style={{ flex: 1, justifyContent: "center" }} disabled={newRows.length === 0 || importing} onClick={onConfirm}>
+          {importing ? "Importing…" : `Import ${newRows.length} player${newRows.length !== 1 ? "s" : ""}`}
+        </Btn>
+      </div>
+    </Modal>
+  );
+}
+
+function PlayersTab({ players, tournaments, onSave, onDelete, showToast }) {
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [q, setQ] = useState("");
+  const [importPreview, setImportPreview] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
+  const filtered = players.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.mobile.includes(q));
+
+  const handleSave = (data) => {
+    onSave(editing ? { ...editing, ...data } : { active: true, ...data });
+    showToast(editing ? "Player updated" : "Player added");
+    setShowForm(false); setEditing(null);
+  };
+  const handleRemove = (id) => {
+    const inUse = tournaments.some((t) => (t.payments || []).some((p) => p.playerId === id) || (t.matches || []).some((m) => m.participantIds.includes(id)) || t.treasurerId === id);
+    if (inUse) { showToast("Can't delete — player has recorded matches, payments, or is a Treasurer"); return; }
+    onDelete(id); showToast("Player removed");
+  };
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const result = await parsePlayerExcel(file, players);
+      setImportPreview(result);
+    } catch (err) {
+      showToast(err.message || "Import failed");
+    }
+  };
+  const handleImportConfirm = async () => {
+    if (!importPreview?.newRows.length) return;
+    setImporting(true);
+    try {
+      for (const row of importPreview.newRows) {
+        await onSave({ name: row.name, mobile: row.mobile, active: true });
+      }
+      const skipped = importPreview.skipped.length;
+      showToast(`Imported ${importPreview.newRows.length} player${importPreview.newRows.length !== 1 ? "s" : ""}${skipped ? ` (${skipped} skipped)` : ""}`);
+      setImportPreview(null);
+    } catch {
+      showToast("Import failed — please try again");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <SectionTitle>Players</SectionTitle>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleFileSelect} />
+          <Btn variant="outline" onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Import</Btn>
+          <Btn onClick={() => { setEditing(null); setShowForm(true); }}><UserPlus size={16} /> Add</Btn>
+        </div>
+      </div>
+      <div style={{ position: "relative", marginBottom: 12 }}>
+        <Search size={15} style={{ position: "absolute", left: 11, top: 12, color: "#9C9680" }} />
+        <input style={{ ...inputStyle, paddingLeft: 32 }} placeholder="Search name or mobile" value={q} onChange={(e) => setQ(e.target.value)} />
+      </div>
+      {filtered.length === 0 ? (
+        <EmptyState icon={Users} title="No players found" sub="Add your first player to get started." />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {filtered.map((p) => (
+            <Card key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12 }}>
+              <div><div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>{p.name} {!p.active && <Pill tone="grey">Inactive</Pill>}</div><div style={{ fontSize: 12.5, color: "#8A836E" }}>{p.mobile}</div></div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => { setEditing(p); setShowForm(true); }} style={{ background: "#EDEBE3", border: "none", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Edit</button>
+                <button onClick={() => handleRemove(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ball-red)" }}><Trash2 size={16} /></button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+      {showForm && (
+        <Modal title={editing ? "Edit Player" : "Add Player"} onClose={() => { setShowForm(false); setEditing(null); }}>
+          <PlayerFormBody initial={editing} onSave={handleSave} />
+        </Modal>
+      )}
+      {importPreview && (
+        <PlayerImportModal
+          parseResult={importPreview}
+          onClose={() => setImportPreview(null)}
+          onConfirm={handleImportConfirm}
+          importing={importing}
+        />
+      )}
+    </div>
+  );
+}
+
+function PlayerFormBody({ initial, onSave }) {
+  const [name, setName] = useState(initial?.name || "");
+  const [mobile, setMobile] = useState(initial?.mobile || "");
+  const [active, setActive] = useState(initial?.active ?? true);
+  const canSave = name.trim() && mobile.trim();
+  return (
+    <>
+      <Field label="Name"><input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="Player name" /></Field>
+      <Field label="Mobile number"><input style={inputStyle} value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="e.g. 9876543210" /></Field>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, fontSize: 14, fontWeight: 600 }}><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Active player</label>
+      <Btn style={{ width: "100%", justifyContent: "center" }} disabled={!canSave} onClick={() => canSave && onSave({ name: name.trim(), mobile: mobile.trim(), active })}><Check size={16} /> Save Player</Btn>
+    </>
+  );
+}
+
+function TournamentDetail({ 
+  tournament, players, playersById, onBack, onUpdate, onDelete, showToast, 
+  firebaseSavePayment, firebaseDeletePayment, firebaseSaveMatch, firebaseDeleteMatch, firebaseSavePlayer 
+}){
+  const [section, setSection] = useState("payments");
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [showMatchForm, setShowMatchForm] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const stats = computeTournamentStats(tournament);
+  // ⚠️ NEW: Replace P2P computeSettlement with Centralized Math
+  const centralizedSettlement = computeCentralizedSettlement(tournament, stats, playersById);
+  const remainingFee = tournament.totalFee - stats.paidTotal;
+
+  const addPayment = (data) => { 
+    firebaseSavePayment({ ...data, tournamentId: tournament.id }); 
+    setShowPaymentForm(false); 
+  };
+  const removePayment = (id) => firebaseDeletePayment(id);
+  
+  const saveMatch = (data, existingId) => {
+    firebaseSaveMatch(data, existingId, tournament.id);
+    setShowMatchForm(null);
+  };
+  const removeMatch = (id) => firebaseDeleteMatch(id);
+  
+  const exportCSV = () => downloadCSV(`${tournament.name.replace(/\s+/g, "_")}_export.csv`, tournamentCSVRows(tournament, playersById, stats, centralizedSettlement));
+  
+  return (
+    <div>
+      <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", color: "var(--pitch-green-deep)", fontWeight: 700, marginBottom: 10, padding: 0 }}><ArrowLeft size={16} /> All Tournaments</button>
+      <Card style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div><div className="ogc-display" style={{ fontSize: 24, lineHeight: 1 }}>{tournament.name}</div><div style={{ fontSize: 12.5, color: "#8A836E", marginTop: 4 }}>Treasurer: {playersById[tournament.treasurerId]?.name || "None"}</div></div>
+          <StatusPill status={tournament.status} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 14 }}>
+          <MiniStat label="Total Fee" value={inr(tournament.totalFee)} /><MiniStat label="Collected" value={inr(stats.paidTotal)} /><MiniStat label="Per Match" value={stats.numMatches ? inr(stats.costPerMatch) : "—"} />
+        </div>
+        {remainingFee !== 0 && (
+          <div style={{ marginTop: 10, fontSize: 12.5, display: "flex", alignItems: "center", gap: 6, color: remainingFee > 0 ? "var(--ball-red)" : "#8A6A16" }}><AlertTriangle size={14} />{remainingFee > 0 ? `${inr(remainingFee)} of the fee is not yet collected` : `${inr(-remainingFee)} collected over the total fee`}</div>
+        )}
+        <select value={tournament.status} onChange={(e) => onUpdate({ ...tournament, status: e.target.value })} style={{ ...inputStyle, marginTop: 12 }}>
+          <option>Upcoming</option><option>Ongoing</option><option>Completed</option>
+        </select>
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          <Btn variant="outline" style={{ flex: 1, justifyContent: "center", fontSize: 12.5 }} onClick={exportCSV}><Download size={14} /> Export CSV</Btn>
+          <Btn variant="danger" style={{ flex: 1, justifyContent: "center", fontSize: 12.5 }} onClick={() => setConfirmDelete(true)}><Trash2 size={14} /> Delete</Btn>
+        </div>
+      </Card>
+      
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, overflowX: "auto" }}>
+        {["payments", "matches", "settlement", "whatsapp"].map((s) => (
+          <button key={s} onClick={() => setSection(s)} style={{ padding: "6px 13px", borderRadius: 999, border: "1.5px solid var(--line-soft)", fontSize: 12.5, fontWeight: 700, textTransform: "capitalize", background: section === s ? "var(--pitch-green)" : "#fff", color: section === s ? "#fff" : "var(--pitch-ink)", cursor: "pointer", whiteSpace: "nowrap" }}>{s}</button>
+        ))}
+      </div>
+
+      {section === "payments" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}><Btn onClick={() => setShowPaymentForm(true)}><Plus size={15} /> Record Payment</Btn></div>
+          {(tournament.payments || []).length === 0 ? <EmptyState icon={IndianRupee} title="No payments yet" sub="Record who paid the tournament fee." /> : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {tournament.payments.map((p) => (
+                <Card key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12 }}>
+                  <div><div style={{ fontWeight: 700 }}>{playersById[p.playerId]?.name || "Unknown"}</div><div style={{ fontSize: 12, color: "#8A836E" }}>{fmtDate(p.date)}</div></div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span className="ogc-mono" style={{ fontWeight: 700 }}>{inr(p.amount)}</span><button onClick={() => removePayment(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ball-red)" }}><Trash2 size={15} /></button></div>
+                </Card>
+              ))}
+            </div>
+          )}
+          {showPaymentForm && <Modal title="Record Payment" onClose={() => setShowPaymentForm(false)}><PaymentFormBody players={players} onSave={addPayment} /></Modal>}
+        </div>
+      )}
+
+      {section === "matches" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}><Btn onClick={() => setShowMatchForm({})}><Plus size={15} /> Add Match</Btn></div>
+          {(tournament.matches || []).length === 0 ? <EmptyState icon={Calendar} title="No matches yet" sub="Add matches as the tournament progresses." /> : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {stats.perMatch.map((m) => (
+                <Card key={m.id} style={{ padding: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><div style={{ fontWeight: 700 }}>{m.name}</div><span className="ogc-mono" style={{ fontSize: 12.5 }}>{inr(m.cost)} / match</span></div>
+                  <div style={{ fontSize: 12, color: "#8A836E", margin: "3px 0 8px" }}>
+                    {fmtDate(m.date)} · {m.participantCount} player(s) · {inr(m.perPlayer)}/player
+                    {m.additionalAmount > 0 && ` · +${inr(m.additionalAmount)} extra`}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
+                    {m.participantIds.map((id) => <span key={id} style={{ fontSize: 11.5, background: "#EDEBE3", padding: "3px 8px", borderRadius: 999 }}>{playersById[id]?.name || "?"}</span>)}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, borderTop: "1px solid var(--line-soft)", paddingTop: 8 }}>
+                    <Btn variant="ghost" style={{ padding: "4px 8px", fontSize: 12 }} onClick={() => setShowMatchForm(m)}>Edit</Btn>
+                    <Btn variant="ghost" style={{ padding: "4px 8px", fontSize: 12, color: "var(--ball-red)" }} onClick={() => removeMatch(m.id)}>Remove</Btn>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+          {showMatchForm && <Modal title={showMatchForm.id ? "Edit Match" : "Add Match"} onClose={() => setShowMatchForm(null)}><MatchFormBody players={players} firebaseSavePlayer={firebaseSavePlayer} initial={showMatchForm.id ? showMatchForm : null} onSave={(data) => saveMatch(data, showMatchForm.id)} /></Modal>}
+        </div>
+      )}
+
+      {section === "settlement" && (
+        <div>
+          {stats.balances.length === 0 ? <EmptyState icon={Wallet} title="Nothing to settle yet" sub="Add matches with participants first." /> : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+              <SectionTitle>Centralized Ledger</SectionTitle>
+              {stats.balances.sort((a, b) => b.balance - a.balance).map((b) => {
+                const settled = Math.round(b.balance) === 0;
+                return (
+                  <Card key={b.playerId} style={{ padding: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ fontWeight: 700 }}>{playersById[b.playerId]?.name || "Unknown"}</div>
+                      {settled ? <Pill tone="green"><CheckCircle2 size={11} style={{ marginRight: 3, display: "inline" }} />Settled</Pill> : b.balance > 0 ? <Pill tone="red">Owes {inr(b.balance)}</Pill> : <Pill tone="gold">Gets {inr(-b.balance)}</Pill>}
+                    </div>
+                    <div style={{ fontSize: 12, color: "#8A836E", marginTop: 4 }}>{b.matches.length} matches · Owed {inr(b.owed)} · Paid {inr(b.paid)}</div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ⚠️ NEW: WhatsApp Tab with Click-to-Chat functionality */}
+      {section === "whatsapp" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {tournament.status !== "Completed" ? <EmptyState icon={MessageCircle} title="Mark tournament as Completed" sub="WhatsApp summaries generate once the tournament is finished." /> : centralizedSettlement.length === 0 ? <EmptyState icon={MessageCircle} title="No player data yet" sub="Add matches and participants first." /> : centralizedSettlement.map((b) => {
+            return (
+              <Card key={b.playerId} style={{ padding: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div style={{ fontWeight: 700 }}>{playersById[b.playerId]?.name}</div>
+                  <a href={b.whatsappLink} target="_blank" rel="noopener noreferrer" style={{ background: "#25D366", color: "#fff", border: "none", borderRadius: 8, padding: "6px 10px", display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, cursor: "pointer", textDecoration: "none" }}><MessageCircle size={13} /> Send</a>
+                </div>
+                <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: 12.5, margin: 0, color: "#5C5647", background: "var(--pitch-cream)", padding: 10, borderRadius: 8 }}>{b.message}</pre>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {confirmDelete && (
+        <Modal title="Delete Tournament?" onClose={() => setConfirmDelete(false)}>
+          <p style={{ fontSize: 14, lineHeight: 1.5, color: "#5C5647" }}>This will download a CSV backup of all matches, payments and settlement data for <b>{tournament.name}</b>, then permanently delete it. This can't be undone.</p>
+          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            <Btn variant="ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setConfirmDelete(false)}>Cancel</Btn>
+            <Btn variant="danger" style={{ flex: 1, justifyContent: "center" }} onClick={() => { exportCSV(); onDelete(tournament.id); }}><Download size={14} /> Export & Delete</Btn>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function PaymentFormBody({ players, onSave }) {
+  const [playerId, setPlayerId] = useState(players[0]?.id || "");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const canSave = playerId && amount !== "" && Number(amount) > 0;
+  return (
+    <>
+      <Field label="Player">
+        <select style={inputStyle} value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
+          {players.length === 0 && <option value="">Add a player first</option>}
+          {players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
+      <Field label="Amount paid (₹)"><input type="number" style={inputStyle} value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
+      <Field label="Payment date"><input type="date" style={inputStyle} value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+      <Btn style={{ width: "100%", justifyContent: "center" }} disabled={!canSave} onClick={() => canSave && onSave({ playerId, amount: Number(amount), date })}><Check size={16} /> Save Payment</Btn>
+    </>
+  );
+}
+
+function MatchFormBody({ players, firebaseSavePlayer, initial, onSave }) {
+  const [name, setName] = useState(initial?.name || "");
+  const [date, setDate] = useState(initial?.date || new Date().toISOString().slice(0, 10));
+  const [participantIds, setParticipantIds] = useState(initial?.participantIds || []);
+  const [additionalAmount, setAdditionalAmount] = useState(initial?.additionalAmount ?? "");
+  const [quickAdd, setQuickAdd] = useState(false);
+  const [qName, setQName] = useState(""); const [qMobile, setQMobile] = useState("");
+
+  const toggle = (id) => setParticipantIds((ids) => ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]);
+  const canSave = name.trim() && date && participantIds.length > 0;
+
+  const addQuickPlayer = async () => {
+    if (!qName.trim() || !qMobile.trim()) return;
+    const newId = uid();
+    await firebaseSavePlayer({ id: newId, name: qName.trim(), mobile: qMobile.trim(), active: true });
+    setParticipantIds((ids) => [...ids, newId]);
+    setQName(""); setQMobile(""); setQuickAdd(false);
+  };
+
+  return (
+    <>
+      <Field label="Match number / name"><input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Match 3 vs Titans" /></Field>
+      <Field label="Match date"><input type="date" style={inputStyle} value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+      <Field label="Additional amount for this match (₹)">
+        <input type="number" min="0" style={inputStyle} value={additionalAmount} onChange={(e) => setAdditionalAmount(e.target.value)} placeholder="0 — e.g. extra ball/umpire cost" />
+        <div style={{ fontSize: 11.5, color: "#8A836E", marginTop: 4 }}>Optional. Split equally among participants on top of the base share.</div>
+      </Field>
+      <Field label={`Participants (${participantIds.length} selected)`}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 220, overflowY: "auto", padding: "4px 2px" }} className="ogc-scrollbar">
+          {players.map((p) => {
+            const sel = participantIds.includes(p.id);
+            return <button key={p.id} onClick={() => toggle(p.id)} type="button" style={{ padding: "6px 12px", borderRadius: 999, border: `1.5px solid ${sel ? "var(--pitch-green)" : "var(--line-soft)"}`, background: sel ? "var(--pitch-green)" : "#fff", color: sel ? "#fff" : "var(--pitch-ink)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{p.name}</button>;
+          })}
+        </div>
+      </Field>
+      {!quickAdd ? (
+        <button onClick={() => setQuickAdd(true)} style={{ background: "none", border: "none", color: "var(--pitch-green-deep)", fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 14, display: "flex", alignItems: "center", gap: 4 }}><UserPlus size={14} /> New player joining this match</button>
+      ) : (
+        <div style={{ border: "1.5px dashed var(--line-soft)", borderRadius: 10, padding: 10, marginBottom: 14 }}>
+          <input style={{ ...inputStyle, marginBottom: 8 }} placeholder="Name" value={qName} onChange={(e) => setQName(e.target.value)} />
+          <input style={{ ...inputStyle, marginBottom: 8 }} placeholder="Mobile" value={qMobile} onChange={(e) => setQMobile(e.target.value)} />
+          <Btn variant="outline" style={{ width: "100%", justifyContent: "center", fontSize: 12.5 }} onClick={addQuickPlayer}>Add & Select</Btn>
+        </div>
+      )}
+      <Btn style={{ width: "100%", justifyContent: "center" }} disabled={!canSave} onClick={() => canSave && onSave({ name: name.trim(), date, participantIds, additionalAmount: additionalAmount === "" ? 0 : Number(additionalAmount) })}><Check size={16} /> Save Match</Btn>
+    </>
+  );
+}
+
+function ReportsTab({ tournaments, players, playersById }) {
+  const [report, setReport] = useState("expense");
+  const perTournamentStats = tournaments.map((t) => ({ t, stats: computeTournamentStats(t) }));
+  const playerAgg = {};
+  players.forEach((p) => { playerAgg[p.id] = { owed: 0, paid: 0, matches: 0 }; });
+  perTournamentStats.forEach(({ stats }) => {
+    stats.balances.forEach((b) => {
+      if (!playerAgg[b.playerId]) playerAgg[b.playerId] = { owed: 0, paid: 0, matches: 0 };
+      playerAgg[b.playerId].owed += b.owed; playerAgg[b.playerId].paid += b.paid; playerAgg[b.playerId].matches += b.matches.length;
+    });
+  });
+  const allPayments = [];
+  tournaments.forEach((t) => (t.payments || []).forEach((p) => allPayments.push({ ...p, tournamentName: t.name })));
+  allPayments.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  return (
+    <div>
+      <SectionTitle>Reports</SectionTitle>
+      <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto" }}>
+        {[["expense", "Tournament Expense"], ["player", "Player-wise"], ["history", "Payment History"], ["outstanding", "Outstanding"], ["contrib", "Contributions"]].map(([id, label]) => (
+          <button key={id} onClick={() => setReport(id)} style={{ padding: "6px 12px", borderRadius: 999, border: "1.5px solid var(--line-soft)", fontSize: 12, fontWeight: 700, background: report === id ? "var(--pitch-green)" : "#fff", color: report === id ? "#fff" : "var(--pitch-ink)", cursor: "pointer", whiteSpace: "nowrap" }}>{label}</button>
+        ))}
+      </div>
+
+      {report === "expense" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {perTournamentStats.length === 0 && <EmptyState icon={Trophy} title="No tournaments yet" sub="" />}
+          {perTournamentStats.map(({ t, stats }) => (
+            <Card key={t.id} style={{ padding: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><b>{t.name}</b><StatusPill status={t.status} /></div>
+              <div style={{ fontSize: 12.5, color: "#8A836E", marginTop: 6, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                <span>Fee: <b className="ogc-mono">{inr(t.totalFee)}</b></span><span>Matches: <b>{stats.numMatches}</b></span>
+                <span>Per match: <b className="ogc-mono">{stats.numMatches ? inr(stats.costPerMatch) : "—"}</b></span><span>Collected: <b className="ogc-mono">{inr(stats.paidTotal)}</b></span>
+              </div>
+            </Card>
+          ))}
+          {perTournamentStats.length > 0 && <Btn variant="outline" style={{ justifyContent: "center" }} onClick={() => downloadCSV("tournament_expense_report.csv", [["Tournament", "Status", "Fee", "Matches", "Per Match", "Collected"], ...perTournamentStats.map(({ t, stats }) => [t.name, t.status, t.totalFee, stats.numMatches, stats.costPerMatch, stats.paidTotal])])}><Download size={14} /> Export CSV</Btn>}
+        </div>
+      )}
+
+      {report === "player" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {players.length === 0 && <EmptyState icon={Users} title="No players yet" sub="" />}
+          {players.map((p) => {
+            const a = playerAgg[p.id] || { owed: 0, paid: 0, matches: 0 };
+            const bal = a.owed - a.paid;
+            return (
+              <Card key={p.id} style={{ padding: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><b>{p.name}</b>{Math.round(bal) === 0 ? <Pill tone="green">Settled</Pill> : bal > 0 ? <Pill tone="red">Owes {inr(bal)}</Pill> : <Pill tone="gold">Gets {inr(-bal)}</Pill>}</div>
+                <div style={{ fontSize: 12.5, color: "#8A836E", marginTop: 6 }}>{a.matches} matches · Owed {inr(a.owed)} · Paid {inr(a.paid)}</div>
+              </Card>
+            );
+          })}
+          {players.length > 0 && <Btn variant="outline" style={{ justifyContent: "center" }} onClick={() => downloadCSV("player_expense_report.csv", [["Player", "Mobile", "Matches", "Owed", "Paid", "Balance"], ...players.map((p) => { const a = playerAgg[p.id] || { owed: 0, paid: 0, matches: 0 }; return [p.name, p.mobile, a.matches, a.owed, a.paid, a.owed - a.paid]; })])}><Download size={14} /> Export CSV</Btn>}
+        </div>
+      )}
+
+      {report === "history" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {allPayments.length === 0 && <EmptyState icon={IndianRupee} title="No payments recorded" sub="" />}
+          {allPayments.map((p) => (
+            <Card key={p.id} style={{ padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div><div style={{ fontWeight: 700 }}>{playersById[p.playerId]?.name || "Unknown"}</div><div style={{ fontSize: 12, color: "#8A836E" }}>{p.tournamentName} · {fmtDate(p.date)}</div></div>
+              <span className="ogc-mono" style={{ fontWeight: 700 }}>{inr(p.amount)}</span>
+            </Card>
+          ))}
+          {allPayments.length > 0 && <Btn variant="outline" style={{ justifyContent: "center" }} onClick={() => downloadCSV("payment_history.csv", [["Player", "Tournament", "Amount", "Date"], ...allPayments.map((p) => [playersById[p.playerId]?.name, p.tournamentName, p.amount, p.date])])}><Download size={14} /> Export CSV</Btn>}
+        </div>
+      )}
+
+      {report === "outstanding" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {players.filter((p) => Math.round((playerAgg[p.id]?.owed || 0) - (playerAgg[p.id]?.paid || 0)) > 0).map((p) => {
+            const a = playerAgg[p.id];
+            const bal = a.owed - a.paid;
+            return <Card key={p.id} style={{ padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}><div><div style={{ fontWeight: 700 }}>{p.name}</div><div style={{ fontSize: 12, color: "#8A836E" }}>{p.mobile}</div></div><Pill tone="red">{inr(bal)}</Pill></Card>;
+          })}
+          {players.filter((p) => Math.round((playerAgg[p.id]?.owed || 0) - (playerAgg[p.id]?.paid || 0)) > 0).length === 0 && <EmptyState icon={CheckCircle2} title="No outstanding balances" sub="Everyone is settled up." />}
+        </div>
+      )}
+
+      {report === "contrib" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {tournaments.length === 0 && <EmptyState icon={Wallet} title="No tournaments yet" sub="" />}
+          {tournaments.map((t) => {
+            const stats = computeTournamentStats(t);
+            const contributorIds = [...new Set((t.payments || []).map((p) => p.playerId))];
+            return (
+              <Card key={t.id} style={{ padding: 12 }}>
+                <b>{t.name}</b>
+                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {contributorIds.map((pid) => {
+                    const paid = (t.payments || []).filter((p) => p.playerId === pid).reduce((s, p) => s + p.amount, 0);
+                    const b = stats.balances.find((x) => x.playerId === pid);
+                    const bal = b ? b.owed - b.paid : -paid;
+                    return <div key={pid} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}><span>{playersById[pid]?.name}</span><span className="ogc-mono">Paid {inr(paid)} {bal < 0 ? `· gets back ${inr(-bal)}` : bal > 0 ? `· owes more ${inr(bal)}` : "· settled"}</span></div>;
+                  })}
+                  {contributorIds.length === 0 && <span style={{ fontSize: 12.5, color: "#8A836E" }}>No contributions recorded</span>}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
