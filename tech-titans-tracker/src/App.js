@@ -102,6 +102,18 @@ function buildUpiPaymentLink({ vpa, payeeName, amount, note }) {
   return `upi://pay?${params.toString()}`;
 }
 
+// Wraps the same payment details in a link to our own "Pay Now" page
+// (see PayPage) instead of a raw upi:// link. WhatsApp reliably auto-links
+// https:// URLs (unlike custom schemes), and it reads as a clean, short,
+// trustworthy domain instead of a long encoded upi://pay?... string.
+function buildPayNowUrl({ vpa, payeeName, amount, note }) {
+  if (!vpa) return "";
+  const params = new URLSearchParams({ pa: vpa, pn: payeeName || "Treasurer", am: String(amount) });
+  if (note) params.set("tn", note);
+  const base = `${window.location.origin}${process.env.PUBLIC_URL || ""}`;
+  return `${base}/#/pay?${params.toString()}`;
+}
+
 // ⚠️ NEW: Centralized Settlement Logic replacing P2P computeSettlement
 function computeCentralizedSettlement(t, stats, playersById) {
   const treasurer = playersById[t.treasurerId];
@@ -119,14 +131,14 @@ function computeCentralizedSettlement(t, stats, playersById) {
 
     const header = `Hi ${player?.name},\n\nYou have played the following match(es) in ${t.name}:\n${matchLines}\n\nTotal Cost For All Matches: ${inr(b.owed)}\nYou have paid a total of: ${inr(b.paid)}\nTotal Amount Due: ${inr(b.balance)}`;
 
-    const upiLink = buildUpiPaymentLink({
+    const payNowUrl = buildPayNowUrl({
       vpa: treasurerUpiId, payeeName: treasurerName, amount: exactAmount, note: `${t.name} fee`,
     });
 
     let closing;
     if (b.balance > 1) {
-      const payLine = upiLink
-        ? `Pay now via UPI: ${upiLink}\n(or PhonePe/GPay to ${treasurerMobile || treasurerName} and share the screenshot)`
+      const payLine = payNowUrl
+        ? `Pay Now: ${payNowUrl}\n(or PhonePe/GPay to ${treasurerMobile || treasurerName} and share the screenshot)`
         : `Please send this to our Treasurer, ${treasurerName}${treasurerMobile ? ` (${treasurerMobile})` : ""}, via PhonePe/GPay and share the screenshot.`;
       closing = `\n\n${payLine}\n\nThanks,\n${treasurerName}`;
     } else if (b.balance < -1) {
@@ -139,7 +151,7 @@ function computeCentralizedSettlement(t, stats, playersById) {
     const waNumber = formatWhatsAppNumber(player?.mobile);
     const whatsappLink = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
 
-    return { ...b, exactAmount, message, whatsappLink, upiLink: b.balance > 1 ? upiLink : "" };
+    return { ...b, exactAmount, message, whatsappLink, upiLink: b.balance > 1 ? payNowUrl : "" };
   });
 }
 
@@ -156,8 +168,8 @@ function downloadCSV(filename, rows) {
 function tournamentCSVRows(t, playersById, stats, centralizedSettlements) {
   const rows = [];
   rows.push(["Tournament", t.name], ["Start Date", fmtDate(t.startDate)], ["End Date", fmtDate(t.endDate)], ["Total Fee", t.totalFee], ["Status", t.status], ["Treasurer", playersById[t.treasurerId]?.name || "None"], []);
-  rows.push(["-- Payments --"], ["Player", "Amount", "Date"]);
-  (t.payments || []).forEach((p) => rows.push([playersById[p.playerId]?.name || "?", p.amount, fmtDate(p.date)]));
+  rows.push(["-- Payments --"], ["Player", "Amount", "Date", "Type"]);
+  (t.payments || []).forEach((p) => rows.push([playersById[p.playerId]?.name || "?", p.amount, fmtDate(p.date), p.type === "refund" ? "Refund" : "Payment"]));
   rows.push([], ["-- Matches --"], ["Match", "Date", "Participants", "Base Cost", "Additional", "Total Cost/Match", "Cost/Player"]);
   stats.perMatch.forEach((m) => rows.push([m.name, fmtDate(m.date), m.participantIds.map((id) => playersById[id]?.name).join("; "), m.baseCost, m.additionalAmount, m.cost, m.perPlayer]));
   rows.push([], ["-- Settlement --"], ["Player", "Matches Played", "Owed", "Paid", "Balance (+ = owes, - = refund)"]);
@@ -208,9 +220,64 @@ const MiniStat = ({ label, value }) => (
 );
 
 /* ---------------------------------------------------------------------- */
+/* Public "Pay Now" landing page                                         */
+/* Reached via a #/pay?... hash link shared in WhatsApp messages. Needs   */
+/* no login and reads nothing from Firestore - everything it needs is    */
+/* already encoded in the URL, the same details already visible in the   */
+/* message itself.                                                       */
+/* ---------------------------------------------------------------------- */
+function parsePayParamsFromHash() {
+  const hash = window.location.hash || "";
+  if (!hash.startsWith("#/pay")) return null;
+  const qIndex = hash.indexOf("?");
+  const params = new URLSearchParams(qIndex === -1 ? "" : hash.slice(qIndex + 1));
+  return {
+    vpa: params.get("pa") || "",
+    payeeName: params.get("pn") || "Treasurer",
+    amount: params.get("am") || "",
+    note: params.get("tn") || "",
+  };
+}
+
+function PayPage({ params }) {
+  const upiLink = buildUpiPaymentLink({
+    vpa: params.vpa, payeeName: params.payeeName, amount: params.amount, note: params.note,
+  });
+  return (
+    <div className="ogc-root" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
+      <FontLoader />
+      <div style={{ width: 72, height: 72, borderRadius: 16, background: "var(--pitch-green-deep)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
+        <IndianRupee size={32} color="#fff" />
+      </div>
+      <h1 className="ogc-display" style={{ fontSize: 30, marginBottom: 6 }}>Pay {params.payeeName}</h1>
+      <div className="ogc-mono" style={{ fontSize: 34, fontWeight: 800, marginBottom: 4 }}>{inr(Number(params.amount) || 0)}</div>
+      {params.note && <div style={{ color: "#8A836E", fontSize: 13, marginBottom: 22 }}>{params.note}</div>}
+      {upiLink ? (
+        <>
+          <Btn style={{ padding: "14px 28px", fontSize: 16 }} onClick={() => { window.location.href = upiLink; }}>
+            <IndianRupee size={18} /> Pay Now via UPI
+          </Btn>
+          <div style={{ marginTop: 16, fontSize: 12, color: "#8A836E", maxWidth: 300 }}>
+            Tap to open PhonePe / GPay / any UPI app with the amount pre-filled. If nothing opens, copy this link into your UPI app instead:
+          </div>
+          <div className="ogc-mono" style={{ marginTop: 8, fontSize: 11, wordBreak: "break-all", background: "var(--card)", border: "1px solid var(--line-soft)", padding: 10, borderRadius: 8, maxWidth: 320 }}>{upiLink}</div>
+        </>
+      ) : (
+        <div style={{ color: "var(--ball-red)", fontSize: 14 }}>This payment link is missing details. Please ask for a new one.</div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
 /* Main App                                                              */
 /* ---------------------------------------------------------------------- */
 export default function App() {
+  // Public payment links (#/pay?...) bypass login entirely - they carry
+  // everything needed to render in the URL itself, same as what's already
+  // visible in the WhatsApp message that links to them.
+  const payParams = useMemo(() => parsePayParamsFromHash(), []);
+
   const [user, setUser] = useState(null);
   const [authChecking, setAuthChecking] = useState(true);
   const [authError, setAuthError] = useState("");
@@ -319,6 +386,8 @@ export default function App() {
     try { await signInWithPopup(auth, provider); } 
     catch (error) { setAuthError("Login failed. Try again."); }
   };
+
+  if (payParams) return <PayPage params={payParams} />;
 
   if (authChecking) return <div className="ogc-root" style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><FontLoader />Loading...</div>;
 
@@ -623,6 +692,25 @@ function TournamentDetail({
     setShowPaymentForm(false); 
   };
   const removePayment = (id) => firebaseDeletePayment(id);
+
+  // One-tap settle: records a real payment for the outstanding balance, so
+  // paidTotal/reports/CSV all stay accurate automatically. Positive amount
+  // = money received from the player; negative = a refund paid out to them.
+  // Fully reversible - the generated entry can be deleted like any payment.
+  const markSettled = (b) => {
+    const amount = Math.round(b.balance);
+    if (amount === 0) return;
+    firebaseSavePayment({
+      playerId: b.playerId,
+      tournamentId: tournament.id,
+      amount,
+      date: new Date().toISOString().slice(0, 10),
+      type: amount < 0 ? "refund" : "payment",
+      note: amount < 0 ? "Marked as refunded from Settlement tab" : "Marked as received from Settlement tab",
+    });
+    const name = playersById[b.playerId]?.name || "Player";
+    showToast(amount < 0 ? `Marked ${inr(-amount)} refunded to ${name}` : `Marked ${inr(amount)} received from ${name}`);
+  };
   
   const saveMatch = (data, existingId) => {
     firebaseSaveMatch(data, existingId, tournament.id);
@@ -668,7 +756,13 @@ function TournamentDetail({
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {tournament.payments.map((p) => (
                 <Card key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12 }}>
-                  <div><div style={{ fontWeight: 700 }}>{playersById[p.playerId]?.name || "Unknown"}</div><div style={{ fontSize: 12, color: "#8A836E" }}>{fmtDate(p.date)}</div></div>
+                  <div>
+                    <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                      {playersById[p.playerId]?.name || "Unknown"}
+                      {p.type === "refund" && <Pill tone="gold">Refund</Pill>}
+                    </div>
+                    <div style={{ fontSize: 12, color: "#8A836E" }}>{fmtDate(p.date)}</div>
+                  </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span className="ogc-mono" style={{ fontWeight: 700 }}>{inr(p.amount)}</span><button onClick={() => removePayment(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ball-red)" }}><Trash2 size={15} /></button></div>
                 </Card>
               ))}
@@ -719,6 +813,13 @@ function TournamentDetail({
                       {settled ? <Pill tone="green"><CheckCircle2 size={11} style={{ marginRight: 3, display: "inline" }} />Settled</Pill> : b.balance > 0 ? <Pill tone="red">Owes {inr(b.balance)}</Pill> : <Pill tone="gold">Gets {inr(-b.balance)}</Pill>}
                     </div>
                     <div style={{ fontSize: 12, color: "#8A836E", marginTop: 4 }}>{b.matches.length} matches · Owed {inr(b.owed)} · Paid {inr(b.paid)}</div>
+                    {!settled && (
+                      <div style={{ marginTop: 8, borderTop: "1px solid var(--line-soft)", paddingTop: 8 }}>
+                        <Btn variant="outline" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => markSettled(b)}>
+                          <CheckCircle2 size={13} /> {b.balance > 0 ? "Mark Received" : "Mark Refunded"}
+                        </Btn>
+                      </div>
+                    )}
                   </Card>
                 );
               })}
