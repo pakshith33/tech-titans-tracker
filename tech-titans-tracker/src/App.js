@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Trophy, Users, Wallet, BarChart3, Plus, X, Check, ChevronRight,
   MessageCircle, Download, Trash2, Archive, Search, ArrowLeft, Calendar,
-  IndianRupee, UserPlus, ClipboardCopy, AlertTriangle, CheckCircle2, Upload
+  IndianRupee, UserPlus, ClipboardCopy, AlertTriangle, CheckCircle2
 } from "lucide-react";
-import * as XLSX from "xlsx";
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "firebase/app";
@@ -71,65 +70,6 @@ const formatWhatsAppNumber = (rawNumber) => {
   const cleanNumber = rawNumber.replace(/\D/g, "");
   return cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber;
 };
-
-const normalizeMobile = (raw) => String(raw ?? "").replace(/\D/g, "");
-
-function parsePlayerExcel(file, existingPlayers) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const workbook = XLSX.read(e.target.result, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        if (!sheet) return reject(new Error("Empty file"));
-        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-        if (rows.length < 1) return reject(new Error("Empty file"));
-        const headers = rows[0].map((h) => String(h).trim().toLowerCase());
-        const nameIdx = headers.indexOf("name");
-        const mobileIdx = headers.indexOf("mobile");
-        if (nameIdx === -1 || mobileIdx === -1) return reject(new Error("Header row must include Name and Mobile columns"));
-        const existingMobiles = new Set(existingPlayers.map((p) => normalizeMobile(p.mobile)));
-        const seenInFile = new Set();
-        const newRows = [];
-        const skipped = [];
-        const errors = [];
-        for (let i = 1; i < rows.length; i++) {
-          const row = rows[i];
-          const name = String(row[nameIdx] ?? "").trim();
-          const mobileRaw = String(row[mobileIdx] ?? "").trim();
-          const rowNum = i + 1;
-          if (!name && !mobileRaw) continue;
-          if (!name) { errors.push({ row: rowNum, name, mobile: mobileRaw, reason: "Missing name" }); continue; }
-          if (!mobileRaw) { errors.push({ row: rowNum, name, mobile: mobileRaw, reason: "Missing mobile" }); continue; }
-          const normalized = normalizeMobile(mobileRaw);
-          if (normalized.length < 10) { errors.push({ row: rowNum, name, mobile: mobileRaw, reason: "Mobile must have at least 10 digits" }); continue; }
-          if (existingMobiles.has(normalized)) {
-            skipped.push({ row: rowNum, name, mobile: mobileRaw, reason: "Already exists in database" });
-            continue;
-          }
-          if (seenInFile.has(normalized)) {
-            skipped.push({ row: rowNum, name, mobile: mobileRaw, reason: "Duplicate in file" });
-            continue;
-          }
-          seenInFile.add(normalized);
-          newRows.push({ name, mobile: mobileRaw });
-        }
-        resolve({ newRows, skipped, errors });
-      } catch {
-        reject(new Error("Could not parse Excel file"));
-      }
-    };
-    reader.onerror = () => reject(new Error("Failed to read file"));
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-function downloadPlayerTemplate() {
-  const ws = XLSX.utils.aoa_to_sheet([["Name", "Mobile"], ["Raj Kumar", "9876543210"]]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Players");
-  XLSX.writeFile(wb, "player_import_template.xlsx");
-}
 
 function computeTournamentStats(t) {
   const numMatches = t.matches ? t.matches.length : 0;
@@ -576,63 +516,10 @@ function TournamentFormBody({ players, initial, onSave }) {
   );
 }
 
-function PlayerImportModal({ parseResult, onClose, onConfirm, importing }) {
-  const { newRows, skipped, errors } = parseResult;
-  const ImportRow = ({ item, tone }) => (
-    <div style={{ fontSize: 12.5, padding: "6px 0", borderBottom: "1px solid var(--line-soft)", color: tone === "red" ? "var(--ball-red)" : tone === "grey" ? "#8A836E" : "var(--pitch-ink)" }}>
-      <span style={{ fontWeight: 600 }}>Row {item.row}:</span> {item.name || "—"} · {item.mobile || "—"}
-      {item.reason && <span style={{ marginLeft: 6, fontSize: 11.5, opacity: 0.85 }}>({item.reason})</span>}
-    </div>
-  );
-  return (
-    <Modal title="Import Players" onClose={onClose} wide>
-      <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 12 }}>
-        {newRows.length} new · {skipped.length} skipped · {errors.length} error{errors.length !== 1 ? "s" : ""}
-      </div>
-      <button onClick={downloadPlayerTemplate} style={{ background: "none", border: "none", color: "var(--pitch-green-deep)", fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 14, display: "flex", alignItems: "center", gap: 4 }}>
-        <Download size={14} /> Download template
-      </button>
-      {newRows.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "#6B6552", textTransform: "uppercase", marginBottom: 6 }}>Ready to import</div>
-          <div className="ogc-scrollbar" style={{ maxHeight: 140, overflowY: "auto", background: "var(--pitch-cream)", borderRadius: 8, padding: "4px 10px" }}>
-            {newRows.map((item, i) => <ImportRow key={i} item={{ row: i + 2, name: item.name, mobile: item.mobile }} />)}
-          </div>
-        </div>
-      )}
-      {skipped.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "#6B6552", textTransform: "uppercase", marginBottom: 6 }}>Skipped</div>
-          <div className="ogc-scrollbar" style={{ maxHeight: 100, overflowY: "auto", background: "var(--pitch-cream)", borderRadius: 8, padding: "4px 10px" }}>
-            {skipped.map((item, i) => <ImportRow key={i} item={item} tone="grey" />)}
-          </div>
-        </div>
-      )}
-      {errors.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--ball-red)", textTransform: "uppercase", marginBottom: 6 }}>Errors</div>
-          <div className="ogc-scrollbar" style={{ maxHeight: 100, overflowY: "auto", background: "#F6E1DE", borderRadius: 8, padding: "4px 10px" }}>
-            {errors.map((item, i) => <ImportRow key={i} item={item} tone="red" />)}
-          </div>
-        </div>
-      )}
-      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-        <Btn variant="ghost" style={{ flex: 1, justifyContent: "center" }} onClick={onClose} disabled={importing}>Cancel</Btn>
-        <Btn style={{ flex: 1, justifyContent: "center" }} disabled={newRows.length === 0 || importing} onClick={onConfirm}>
-          {importing ? "Importing…" : `Import ${newRows.length} player${newRows.length !== 1 ? "s" : ""}`}
-        </Btn>
-      </div>
-    </Modal>
-  );
-}
-
 function PlayersTab({ players, tournaments, onSave, onDelete, showToast }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [q, setQ] = useState("");
-  const [importPreview, setImportPreview] = useState(null);
-  const [importing, setImporting] = useState(false);
-  const fileInputRef = useRef(null);
   const filtered = players.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.mobile.includes(q));
 
   const handleSave = (data) => {
@@ -645,43 +532,12 @@ function PlayersTab({ players, tournaments, onSave, onDelete, showToast }) {
     if (inUse) { showToast("Can't delete — player has recorded matches, payments, or is a Treasurer"); return; }
     onDelete(id); showToast("Player removed");
   };
-  const handleFileSelect = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    try {
-      const result = await parsePlayerExcel(file, players);
-      setImportPreview(result);
-    } catch (err) {
-      showToast(err.message || "Import failed");
-    }
-  };
-  const handleImportConfirm = async () => {
-    if (!importPreview?.newRows.length) return;
-    setImporting(true);
-    try {
-      for (const row of importPreview.newRows) {
-        await onSave({ name: row.name, mobile: row.mobile, active: true });
-      }
-      const skipped = importPreview.skipped.length;
-      showToast(`Imported ${importPreview.newRows.length} player${importPreview.newRows.length !== 1 ? "s" : ""}${skipped ? ` (${skipped} skipped)` : ""}`);
-      setImportPreview(null);
-    } catch {
-      showToast("Import failed — please try again");
-    } finally {
-      setImporting(false);
-    }
-  };
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <SectionTitle>Players</SectionTitle>
-        <div style={{ display: "flex", gap: 8 }}>
-          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleFileSelect} />
-          <Btn variant="outline" onClick={() => fileInputRef.current?.click()}><Upload size={16} /> Import</Btn>
-          <Btn onClick={() => { setEditing(null); setShowForm(true); }}><UserPlus size={16} /> Add</Btn>
-        </div>
+        <Btn onClick={() => { setEditing(null); setShowForm(true); }}><UserPlus size={16} /> Add</Btn>
       </div>
       <div style={{ position: "relative", marginBottom: 12 }}>
         <Search size={15} style={{ position: "absolute", left: 11, top: 12, color: "#9C9680" }} />
@@ -706,14 +562,6 @@ function PlayersTab({ players, tournaments, onSave, onDelete, showToast }) {
         <Modal title={editing ? "Edit Player" : "Add Player"} onClose={() => { setShowForm(false); setEditing(null); }}>
           <PlayerFormBody initial={editing} onSave={handleSave} />
         </Modal>
-      )}
-      {importPreview && (
-        <PlayerImportModal
-          parseResult={importPreview}
-          onClose={() => setImportPreview(null)}
-          onConfirm={handleImportConfirm}
-          importing={importing}
-        />
       )}
     </div>
   );
