@@ -443,6 +443,7 @@ export default function App() {
           <>
             {tab === "dashboard" && <Dashboard tournaments={tournamentsWithData} players={players} playersById={playersById} onOpenTournament={setOpenTournamentId} />}
             {tab === "tournaments" && <TournamentsTab tournaments={tournamentsWithData} players={players} onSave={firebaseSaveTournament} onOpen={setOpenTournamentId} showToast={showToast} />}
+            {tab === "dues" && <DuesTab tournaments={tournamentsWithData} playersById={playersById} onOpenTournament={setOpenTournamentId} />}
             {tab === "players" && <PlayersTab players={players} tournaments={tournamentsWithData} onSave={firebaseSavePlayer} onDelete={firebaseDeletePlayer} showToast={showToast} />}
             {tab === "reports" && <ReportsTab tournaments={tournamentsWithData} players={players} playersById={playersById} />}
           </>
@@ -451,7 +452,7 @@ export default function App() {
 
       {!openTournament && (
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "#fff", borderTop: "1px solid var(--line-soft)", display: "flex", padding: "8px 6px" }}>
-          {[{ id: "dashboard", label: "Dashboard", icon: BarChart3 }, { id: "tournaments", label: "Tournaments", icon: Trophy }, { id: "players", label: "Players", icon: Users }, { id: "reports", label: "Reports", icon: Wallet }].map((it) => {
+          {[{ id: "dashboard", label: "Dashboard", icon: BarChart3 }, { id: "tournaments", label: "Tournaments", icon: Trophy }, { id: "dues", label: "Dues", icon: IndianRupee }, { id: "players", label: "Players", icon: Users }, { id: "reports", label: "Reports", icon: Wallet }].map((it) => {
             const active = tab === it.id;
             const Icon = it.icon;
             return (
@@ -508,6 +509,101 @@ function Dashboard({ tournaments, players, playersById, onOpenTournament }) {
             );
           })}
         </div>
+      )}
+    </div>
+  );
+}
+
+// Tournament-wise view of who still owes money ("Pending Payment") and who
+// the treasurer still owes a refund to ("Refund Due"). Pulls from the same
+// computeTournamentStats() balances used everywhere else - no separate data
+// source. Only non-archived tournaments are shown, across all statuses
+// (Upcoming/Ongoing/Completed), and only players who aren't yet settled are
+// listed per tournament (settled players are omitted to keep it scannable).
+function DuesTab({ tournaments, playersById, onOpenTournament }) {
+  const rows = useMemo(() => {
+    return tournaments
+      .filter((t) => !t.archived)
+      .map((t) => {
+        const stats = computeTournamentStats(t);
+        const pending = stats.balances.filter((b) => Math.round(b.balance) > 0).sort((a, b) => b.balance - a.balance);
+        const refundsDue = stats.balances.filter((b) => Math.round(b.balance) < 0).sort((a, b) => a.balance - b.balance);
+        const totalPending = pending.reduce((s, b) => s + b.balance, 0);
+        const totalRefundsDue = refundsDue.reduce((s, b) => s - b.balance, 0);
+        const collectedPct = t.totalFee > 0 ? Math.round((stats.paidTotal / t.totalFee) * 100) : null;
+        return { t, stats, pending, refundsDue, totalPending, totalRefundsDue, collectedPct };
+      })
+      .sort((a, b) => (b.totalPending + b.totalRefundsDue) - (a.totalPending + a.totalRefundsDue));
+  }, [tournaments]);
+
+  const tournamentsWithDues = rows.filter((r) => r.pending.length > 0 || r.refundsDue.length > 0).length;
+
+  return (
+    <div>
+      <SectionTitle>Dues by Tournament</SectionTitle>
+      {rows.length === 0 ? (
+        <EmptyState icon={IndianRupee} title="No tournaments yet" sub="Create a tournament to start tracking dues." />
+      ) : (
+        <>
+          <Card style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#6B6552" }}>Tournaments with outstanding dues</div>
+            <div className="ogc-display" style={{ fontSize: 30, lineHeight: 1, color: tournamentsWithDues ? "var(--ball-red)" : "var(--pitch-green)" }}>{tournamentsWithDues}</div>
+          </Card>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {rows.map(({ t, stats, pending, refundsDue, totalPending, totalRefundsDue, collectedPct }) => (
+              <Card key={t.id}>
+                <div onClick={() => onOpenTournament(t.id)} style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <div style={{ fontWeight: 800 }}>{t.name}</div>
+                    <div style={{ fontSize: 12, color: "#8A836E", marginTop: 2 }}>{fmtDate(t.startDate)} · {stats.numMatches} match{stats.numMatches === 1 ? "" : "es"}</div>
+                  </div>
+                  <StatusPill status={t.status} />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 12 }}>
+                  <MiniStat label="Pending" value={inr(totalPending)} />
+                  <MiniStat label="Refunds Due" value={inr(totalRefundsDue)} />
+                  <MiniStat label="Collected" value={collectedPct === null ? "—" : `${collectedPct}%`} />
+                </div>
+
+                {pending.length === 0 && refundsDue.length === 0 ? (
+                  <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--pitch-green)", fontWeight: 700 }}>
+                    <CheckCircle2 size={14} /> Everyone's settled
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                    {pending.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: "var(--ball-red)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>Pending Payment ({pending.length})</div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {pending.map((b) => (
+                            <div key={b.playerId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--pitch-cream)", borderRadius: 8, padding: "6px 10px" }}>
+                              <span style={{ fontSize: 13, fontWeight: 600 }}>{playersById[b.playerId]?.name || "Unknown"}</span>
+                              <Pill tone="red">{inr(b.balance)}</Pill>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {refundsDue.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: "#8A6A16", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>Refund Due ({refundsDue.length})</div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {refundsDue.map((b) => (
+                            <div key={b.playerId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--pitch-cream)", borderRadius: 8, padding: "6px 10px" }}>
+                              <span style={{ fontSize: 13, fontWeight: 600 }}>{playersById[b.playerId]?.name || "Unknown"}</span>
+                              <Pill tone="gold">{inr(-b.balance)}</Pill>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
