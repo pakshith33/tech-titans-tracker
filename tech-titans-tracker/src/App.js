@@ -34,7 +34,8 @@ const FontLoader = () => (
       --stump-gold: #FCD34D;  
       --ball-red: #EF4444;    
       --line-soft: #E1E4E8;   
-      --card: #FFFFFF;        
+      --card: #FFFFFF;
+      --field-green: #22C55E;
     }
     .ogc-root { font-family: 'Inter', sans-serif; background: var(--pitch-cream); color: var(--pitch-ink); }
     .ogc-display { font-family: 'Bebas Neue', 'Inter', sans-serif; letter-spacing: 0.03em; }
@@ -43,55 +44,129 @@ const FontLoader = () => (
     .ogc-scrollbar::-webkit-scrollbar-thumb { background: var(--line-soft); border-radius: 3px; }
     button, input, select { font-family: inherit; }
     
-    @keyframes confetti-fall {
-      0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
-      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    .ogc-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    @keyframes confetti-shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-5px); }
-      75% { transform: translateX(5px); }
+    .ogc-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(9, 12, 16, 0.12);
     }
-    .confetti-piece {
-      position: fixed;
-      top: -10px;
-      width: 10px;
-      height: 10px;
-      animation: confetti-fall 2.5s ease-out forwards, confetti-shake 0.5s ease-in-out infinite;
-      z-index: 1000;
-      pointer-events: none;
+    .ogc-btn {
+      transition: all 0.2s ease;
+    }
+    .ogc-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    .ogc-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    .nav-btn {
+      transition: all 0.2s ease;
+    }
+    .nav-btn:hover {
+      background: rgba(245, 158, 11, 0.1);
+      border-radius: 8px;
+    }
+    
+    @keyframes confetti-fall-1 {
+      0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg) scale(0.5); opacity: 0; }
+    }
+    @keyframes confetti-fall-2 {
+      0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(-540deg) scale(0.5); opacity: 0; }
+    }
+    @keyframes confetti-sway {
+      0%, 100% { margin-left: 0; }
+      50% { margin-left: 30px; }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
     }
   `}</style>
 );
 
+// Cricket-themed SVG Icons
+const CricketBat = ({ size = 24, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 20L8 16" />
+    <rect x="8" y="4" width="4" height="14" rx="1" transform="rotate(45 10 11)" />
+    <path d="M14.5 9.5L19 5" />
+  </svg>
+);
+
+const CricketBall = ({ size = 24, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 3C9 6 9 10 12 12C15 14 15 18 12 21" />
+    <path d="M8.5 5.5L7 7M16.5 5.5L18 7M8.5 18.5L7 17M16.5 18.5L18 17" />
+  </svg>
+);
+
+const CricketStumps = ({ size = 24, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="8" y1="4" x2="8" y2="20" />
+    <line x1="12" y1="4" x2="12" y2="20" />
+    <line x1="16" y1="4" x2="16" y2="20" />
+    <path d="M6 6H18" />
+    <path d="M6 8H18" />
+  </svg>
+);
+
+const CricketHelmet = ({ size = 24, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2C7 2 4 6 4 10V14C4 16 5 18 7 19H17C19 18 20 16 20 14V10C20 6 17 2 12 2Z" />
+    <path d="M4 12H8L10 14H14L16 12H20" />
+    <circle cx="12" cy="8" r="1" fill={color} />
+  </svg>
+);
+
+const CricketTrophy = ({ size = 24, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 9H4C3 9 2 8 2 7V6C2 5 3 4 4 4H6" />
+    <path d="M18 9H20C21 9 22 8 22 7V6C22 5 21 4 20 4H18" />
+    <path d="M6 4H18V10C18 14 15 17 12 17C9 17 6 14 6 10V4Z" />
+    <path d="M12 17V20" />
+    <path d="M8 22H16" />
+    <path d="M9 22V20H15V22" />
+    <circle cx="12" cy="9" r="2" />
+  </svg>
+);
+
 const Confetti = () => {
   const pieces = useMemo(() => {
-    const colors = ['#F59E0B', '#FCD34D', '#EF4444', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'];
-    return Array.from({ length: 50 }, (_, i) => ({
+    const colors = ['#F59E0B', '#FCD34D', '#EF4444', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#F472B6', '#22D3EE'];
+    return Array.from({ length: 80 }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
-      delay: Math.random() * 0.5,
-      duration: 2 + Math.random() * 1,
+      startTop: -20 - Math.random() * 100,
+      delay: Math.random() * 0.8,
+      duration: 2.5 + Math.random() * 1.5,
       color: colors[Math.floor(Math.random() * colors.length)],
-      size: 6 + Math.random() * 8,
-      shape: Math.random() > 0.5 ? 'circle' : 'square',
+      size: 8 + Math.random() * 10,
+      shape: Math.random() > 0.6 ? 'circle' : Math.random() > 0.3 ? 'square' : 'rect',
+      animation: Math.random() > 0.5 ? 'confetti-fall-1' : 'confetti-fall-2',
+      swayDuration: 1 + Math.random() * 2,
     }));
   }, []);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1000, overflow: 'hidden' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: 9999, overflow: 'hidden' }}>
       {pieces.map((p) => (
         <div
           key={p.id}
-          className="confetti-piece"
           style={{
+            position: 'absolute',
             left: `${p.left}%`,
-            width: p.size,
+            top: p.startTop,
+            width: p.shape === 'rect' ? p.size * 0.4 : p.size,
             height: p.size,
             backgroundColor: p.color,
             borderRadius: p.shape === 'circle' ? '50%' : '2px',
-            animationDelay: `${p.delay}s`,
-            animationDuration: `${p.duration}s, 0.5s`,
+            animation: `${p.animation} ${p.duration}s ease-out ${p.delay}s forwards, confetti-sway ${p.swayDuration}s ease-in-out ${p.delay}s infinite`,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
           }}
         />
       ))}
@@ -142,35 +217,30 @@ function computeTournamentStats(t) {
 }
 
 // Builds a UPI deep link (upi://pay?...) that opens PhonePe/GPay/any UPI app
-// directly with the payee and amount pre-filled, so the player doesn't have
-// to type anything manually. Returns "" if the treasurer has no UPI ID set.
+// with just the UPI ID pre-filled. Amount is intentionally omitted so the user
+// enters it manually - this bypasses the ₹2,000 NPCI limit on deep-link payments.
 //
 // NOTE: this generic "upi://" scheme works great on Android (the OS shows a
 // picker of every installed UPI app), but iOS has no such picker — whichever
 // one app happens to claim the generic scheme (often WhatsApp itself, since
 // it also registers as a UPI handler) silently gets it, with no way for us
 // to control which. See buildUpiAppLinks() below for the iOS-safe fix.
-function buildUpiPaymentLink({ vpa, payeeName, amount, note }) {
+function buildUpiPaymentLink({ vpa, payeeName }) {
   if (!vpa) return "";
   const params = new URLSearchParams({
     pa: vpa,
     pn: payeeName || "Treasurer",
-    am: String(amount),
     cu: "INR",
   });
-  if (note) params.set("tn", note);
   return `upi://pay?${params.toString()}`;
 }
 
-// Per-app custom URL schemes for the same NPCI UPI intent parameters. Unlike
-// the generic "upi://" scheme, these unambiguously target one specific app,
-// which is required for a reliable experience on iOS (no native app-picker
-// there). Google Pay's iOS scheme is "tez://", not "gpay://" — confirmed via
-// Google's own docs; using "gpay://" silently fails on iOS.
-function buildUpiAppLinks({ vpa, payeeName, amount, note }) {
+// Per-app custom URL schemes for UPI. Amount is omitted so user enters it manually,
+// bypassing the ₹2,000 NPCI limit. Google Pay's iOS scheme is "tez://", not "gpay://"
+// — confirmed via Google's own docs; using "gpay://" silently fails on iOS.
+function buildUpiAppLinks({ vpa, payeeName }) {
   if (!vpa) return [];
-  const params = new URLSearchParams({ pa: vpa, pn: payeeName || "Treasurer", am: String(amount), cu: "INR" });
-  if (note) params.set("tn", note);
+  const params = new URLSearchParams({ pa: vpa, pn: payeeName || "Treasurer", cu: "INR" });
   const qs = params.toString();
   return [
     { id: "gpay", label: "Google Pay", url: `tez://upi/pay?${qs}` },
@@ -259,14 +329,27 @@ function tournamentCSVRows(t, playersById, stats, centralizedSettlements) {
 /* ---------------------------------------------------------------------- */
 /* UI Atoms                                                              */
 /* ---------------------------------------------------------------------- */
-const Card = ({ children, style, ...rest }) => ( <div style={{ background: "var(--card)", borderRadius: 14, border: "1px solid var(--line-soft)", boxShadow: "0 6px 24px rgba(9, 12, 16, 0.06)", transition: "transform 0.2s ease, box-shadow 0.2s ease", padding: 16, ...style }} {...rest}>{children}</div> );
-const Pill = ({ children, tone = "green" }) => {
-  const tones = { green: { bg: "#FFFBEB", fg: "#B45309" }, gold: { bg: "#FBF0D6", fg: "#7A5A0F" }, red: { bg: "#F6E1DE", fg: "var(--ball-red)" }, grey: { bg: "#EDEBE3", fg: "#665F4E" } };
-  return <span style={{ background: tones[tone].bg, color: tones[tone].fg, fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>{children}</span>;
+const Card = ({ children, style, className = "", ...rest }) => ( 
+  <div 
+    className={`ogc-card ${className}`} 
+    style={{ background: "var(--card)", borderRadius: 14, border: "1px solid var(--line-soft)", boxShadow: "0 6px 24px rgba(9, 12, 16, 0.06)", padding: 16, ...style }} 
+    {...rest}
+  >
+    {children}
+  </div> 
+);
+const Pill = ({ children, tone = "green", icon: Icon }) => {
+  const tones = { green: { bg: "#FFFBEB", fg: "#B45309" }, gold: { bg: "#FBF0D6", fg: "#7A5A0F" }, red: { bg: "#F6E1DE", fg: "var(--ball-red)" }, grey: { bg: "#EDEBE3", fg: "#665F4E" }, cricket: { bg: "#DCFCE7", fg: "#166534" } };
+  return (
+    <span style={{ background: tones[tone].bg, color: tones[tone].fg, fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 999, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 4 }}>
+      {Icon && <Icon size={11} />}
+      {children}
+    </span>
+  );
 };
 const Btn = ({ children, variant = "primary", style, disabled, ...rest }) => {
   const variants = { primary: { background: "var(--pitch-green)", color: "#fff", border: "none" }, outline: { background: "transparent", color: "var(--pitch-green-deep)", border: "1.5px solid var(--pitch-green)" }, ghost: { background: "transparent", color: "var(--pitch-ink)", border: "none" }, danger: { background: "transparent", color: "var(--ball-red)", border: "1.5px solid var(--ball-red)" }, gold: { background: "var(--stump-gold)", color: "#3B2C08", border: "none" } };
-  return <button disabled={disabled} style={{ ...variants[variant], opacity: disabled ? 0.5 : 1, padding: "9px 16px", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: disabled ? "not-allowed" : "pointer", display: "inline-flex", alignItems: "center", gap: 6, ...style }} {...rest}>{children}</button>;
+  return <button className="ogc-btn" disabled={disabled} style={{ ...variants[variant], opacity: disabled ? 0.5 : 1, padding: "9px 16px", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: disabled ? "not-allowed" : "pointer", display: "inline-flex", alignItems: "center", gap: 6, ...style }} {...rest}>{children}</button>;
 };
 const Field = ({ label, children }) => ( <label style={{ display: "block", marginBottom: 12 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#6B6552", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</div>{children}</label> );
 const inputStyle = { width: "100%", padding: "10px 12px", borderRadius: 9, border: "1.5px solid var(--line-soft)", fontSize: 15, background: "#fff", color: "var(--pitch-ink)", boxSizing: "border-box" };
@@ -281,14 +364,24 @@ const Modal = ({ title, onClose, children, wide }) => (
   </div>
 );
 const EmptyState = ({ icon: Icon, title, sub }) => (
-  <div style={{ textAlign: "center", padding: "40px 20px", color: "#8A836E" }}>
-    <Icon size={32} style={{ marginBottom: 10, opacity: 0.6 }} />
-    <div style={{ fontWeight: 700, color: "var(--pitch-ink)" }}>{title}</div>
+  <div style={{ textAlign: "center", padding: "40px 20px", color: "#8A836E", position: "relative" }}>
+    <div style={{ width: 64, height: 64, borderRadius: 16, background: "linear-gradient(135deg, #F4F5F7 0%, #E5E7EB 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", boxShadow: "inset 0 2px 4px rgba(0,0,0,0.06)" }}>
+      <Icon size={28} style={{ opacity: 0.5 }} />
+    </div>
+    <div style={{ fontWeight: 700, color: "var(--pitch-ink)", fontSize: 15 }}>{title}</div>
     <div style={{ fontSize: 13, marginTop: 4 }}>{sub}</div>
   </div>
 );
-const SectionTitle = ({ children }) => <div style={{ fontSize: 13, fontWeight: 800, color: "#6B6552", textTransform: "uppercase", letterSpacing: "0.05em", margin: "6px 2px 10px" }}>{children}</div>;
-const StatusPill = ({ status }) => <Pill tone={status === "Completed" ? "gold" : status === "Ongoing" ? "green" : "grey"}>{status}</Pill>;
+const SectionTitle = ({ children }) => <div style={{ fontSize: 13, fontWeight: 800, color: "#6B6552", textTransform: "uppercase", letterSpacing: "0.05em", margin: "6px 2px 10px", display: "flex", alignItems: "center" }}>{children}</div>;
+const StatusPill = ({ status }) => {
+  const config = {
+    Completed: { tone: "gold", icon: CricketTrophy },
+    Ongoing: { tone: "green", icon: CricketBall },
+    Upcoming: { tone: "grey", icon: Calendar }
+  };
+  const { tone, icon: Icon } = config[status] || { tone: "grey", icon: Calendar };
+  return <Pill tone={tone} icon={Icon}>{status}</Pill>;
+};
 const MiniStat = ({ label, value }) => (
   <div style={{ background: "var(--pitch-cream)", borderRadius: 9, padding: "8px 6px", textAlign: "center" }}>
     <div className="ogc-mono" style={{ fontWeight: 700, fontSize: 13.5 }}>{value}</div>
@@ -319,12 +412,11 @@ function parsePayParamsFromHash() {
 function PayPage({ params }) {
   const [copied, setCopied] = useState(false);
   const amount = Number(params.amount) || 0;
-  const isLargeAmount = amount > 2000;
   const upiLink = buildUpiPaymentLink({
-    vpa: params.vpa, payeeName: params.payeeName, amount: params.amount, note: params.note,
+    vpa: params.vpa, payeeName: params.payeeName,
   });
   const appLinks = buildUpiAppLinks({
-    vpa: params.vpa, payeeName: params.payeeName, amount: params.amount, note: params.note,
+    vpa: params.vpa, payeeName: params.payeeName,
   });
 
   const copyUpiId = () => {
@@ -345,60 +437,34 @@ function PayPage({ params }) {
 
       {upiLink ? (
         <>
-          {isLargeAmount && (
-            <div style={{ background: "#FEF3C7", border: "1px solid #F59E0B", borderRadius: 10, padding: "12px 16px", marginBottom: 18, maxWidth: 320 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#92400E", marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                <AlertTriangle size={14} /> Amount exceeds ₹2,000
-              </div>
-              <div style={{ fontSize: 11.5, color: "#78350F", lineHeight: 1.4 }}>
-                UPI apps may block payments over ₹2,000 via these buttons (NPCI security rule). Use the <b>manual method below</b> instead.
-              </div>
+          <div style={{ background: "#D1FAE5", border: "1px solid #10B981", borderRadius: 10, padding: "10px 16px", marginBottom: 16, maxWidth: 320 }}>
+            <div style={{ fontSize: 12.5, color: "#065F46", fontWeight: 600 }}>
+              Enter <b>{inr(amount)}</b> when the app opens
             </div>
-          )}
-
-          <div style={{ background: "var(--card)", border: "1.5px solid var(--pitch-green)", borderRadius: 12, padding: 16, marginBottom: 16, maxWidth: 320, width: "100%" }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--pitch-green-deep)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 10 }}>
-              {isLargeAmount ? "Recommended: Pay Manually" : "Pay via UPI ID (works for any amount)"}
-            </div>
-            <div style={{ fontSize: 12.5, color: "#5C5647", marginBottom: 12, lineHeight: 1.5, textAlign: "left" }}>
-              1. Copy this UPI ID<br/>
-              2. Open your UPI app → "Pay to UPI ID"<br/>
-              3. Paste ID, enter {inr(amount)}, and pay
-            </div>
-            <button onClick={copyUpiId} className="ogc-mono" style={{ width: "100%", fontSize: 14, fontWeight: 700, wordBreak: "break-all", background: copied ? "#D1FAE5" : "var(--pitch-cream)", border: copied ? "1.5px solid #10B981" : "1.5px solid var(--line-soft)", padding: "12px 14px", borderRadius: 8, cursor: "pointer", color: copied ? "#065F46" : "var(--pitch-ink)", transition: "all 0.2s" }}>
-              {params.vpa} {copied ? " ✓ Copied!" : ""}
-            </button>
-            {!copied && <div style={{ fontSize: 11, color: "#8A836E", marginTop: 6 }}>Tap to copy</div>}
           </div>
 
-          {!isLargeAmount && (
-            <>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#8A836E", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 10 }}>Or tap to open app directly</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 300 }}>
-                {appLinks.map((app) => (
-                  <Btn key={app.id} variant="outline" style={{ padding: "11px 20px", fontSize: 14, justifyContent: "center" }} onClick={() => { window.location.href = app.url; }}>
-                    Pay via {app.label}
-                  </Btn>
-                ))}
-                <Btn variant="ghost" style={{ padding: "9px 20px", fontSize: 12.5, justifyContent: "center", color: "#8A836E" }} onClick={() => { window.location.href = upiLink; }}>
-                  Other UPI App
-                </Btn>
-              </div>
-            </>
-          )}
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#8A836E", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 10 }}>Open your UPI app</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 300, marginBottom: 16 }}>
+            {appLinks.map((app) => (
+              <Btn key={app.id} variant="outline" style={{ padding: "11px 20px", fontSize: 14, justifyContent: "center" }} onClick={() => { window.location.href = app.url; }}>
+                Open {app.label}
+              </Btn>
+            ))}
+            <Btn variant="ghost" style={{ padding: "9px 20px", fontSize: 12.5, justifyContent: "center", color: "#8A836E" }} onClick={() => { window.location.href = upiLink; }}>
+              Other UPI App
+            </Btn>
+          </div>
 
-          {isLargeAmount && (
-            <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 11, color: "#8A836E", marginBottom: 8 }}>These may not work for amounts over ₹2,000:</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
-                {appLinks.map((app) => (
-                  <button key={app.id} onClick={() => { window.location.href = app.url; }} style={{ padding: "6px 12px", fontSize: 11, fontWeight: 600, background: "#EDEBE3", border: "none", borderRadius: 6, cursor: "pointer", color: "#6B6552" }}>
-                    Try {app.label}
-                  </button>
-                ))}
-              </div>
+          <div style={{ background: "var(--card)", border: "1.5px solid var(--line-soft)", borderRadius: 12, padding: 16, maxWidth: 320, width: "100%" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#6B6552", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 10 }}>
+              Or copy UPI ID manually
             </div>
-          )}
+            <button onClick={copyUpiId} className="ogc-mono" style={{ width: "100%", fontSize: 14, fontWeight: 700, wordBreak: "break-all", background: copied ? "#D1FAE5" : "var(--pitch-cream)", border: copied ? "1.5px solid #10B981" : "1.5px solid var(--line-soft)", padding: "12px 14px", borderRadius: 8, cursor: "pointer", color: copied ? "#065F46" : "var(--pitch-ink)", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <span>{params.vpa}</span>
+              {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+            </button>
+            <div style={{ fontSize: 11, color: "#8A836E", marginTop: 6 }}>{copied ? "Copied to clipboard!" : "Tap to copy UPI ID"}</div>
+          </div>
         </>
       ) : (
         <div style={{ color: "var(--ball-red)", fontSize: 14 }}>This payment link is missing details. Please ask for a new one.</div>
@@ -553,22 +619,37 @@ export default function App() {
   }
 
   return (
+    <>
     <div className="ogc-root" style={{ minHeight: "100vh", maxWidth: 480, margin: "0 auto", position: "relative", paddingBottom: 74, boxShadow: "0 0 0 1px var(--line-soft)" }}>
       <FontLoader />
       
-      {/* HEADER SECTION WITH LOGO AND LIVE NOTIFICATION */}
-      <div style={{ background: "var(--pitch-green-deep)", color: "#fff", padding: "18px 18px 22px", position: "relative", overflow: "hidden", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ position: "absolute", right: -20, top: -20, width: 110, height: 110, borderRadius: "50%", background: "var(--pitch-green)", opacity: 0.15 }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
-          <div style={{ width: 38, height: 38, borderRadius: 10, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      {/* HEADER SECTION WITH CRICKET THEME */}
+      <div style={{ background: "linear-gradient(135deg, var(--pitch-green-deep) 0%, #374151 100%)", color: "#fff", padding: "18px 18px 22px", position: "relative", overflow: "hidden", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        {/* Cricket pitch lines decoration */}
+        <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 2, background: "rgba(255,255,255,0.08)", transform: "translateX(-50%)" }} />
+        <div style={{ position: "absolute", left: "50%", top: "50%", width: 30, height: 30, border: "2px solid rgba(255,255,255,0.08)", borderRadius: "50%", transform: "translate(-50%, -50%)" }} />
+        {/* Cricket ball decoration */}
+        <div style={{ position: "absolute", right: -15, top: -15, width: 80, height: 80, borderRadius: "50%", background: "var(--pitch-green)", opacity: 0.2, boxShadow: "inset -5px -5px 15px rgba(0,0,0,0.2)" }} />
+        <div style={{ position: "absolute", right: 10, top: 10, opacity: 0.15 }}>
+          <CricketBall size={40} color="#fff" />
+        </div>
+        {/* Stumps decoration */}
+        <div style={{ position: "absolute", left: 15, bottom: 5, opacity: 0.1 }}>
+          <CricketStumps size={30} color="#fff" />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}>
+          <div style={{ width: 42, height: 42, borderRadius: 12, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
             <img src={`${process.env.PUBLIC_URL}/logo.png`} style={{ width: "100%", height: "100%", objectFit: "contain" }} alt="Team Logo" />
           </div>
           <div>
-            <div className="ogc-display" style={{ fontSize: 24, lineHeight: 1 }}>TECH TITANS</div>
-            <div style={{ fontSize: 12, opacity: 0.75, fontWeight: 500 }}>Logged in as {user.email.split('@')[0]}</div>
+            <div className="ogc-display" style={{ fontSize: 26, lineHeight: 1, display: "flex", alignItems: "center", gap: 8 }}>
+              TECH TITANS
+              <CricketBat size={18} color="var(--pitch-green)" />
+            </div>
+            <div style={{ fontSize: 11, opacity: 0.7, fontWeight: 500, marginTop: 2 }}>Logged in as {user.email.split('@')[0]}</div>
           </div>
         </div>
-        <button onClick={() => signOut(auth)} style={{ position: "relative", background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", padding: "6px 12px", borderRadius: 8, fontSize: 12, cursor: "pointer" }}>Sign Out</button>
+        <button onClick={() => signOut(auth)} className="ogc-btn" style={{ position: "relative", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}>Sign Out</button>
       </div>
 
       <div style={{ padding: "14px 14px 4px" }}>
@@ -597,14 +678,21 @@ export default function App() {
       </div>
 
       {!openTournament && (
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "#fff", borderTop: "1px solid var(--line-soft)", display: "flex", padding: "8px 6px" }}>
-          {[{ id: "dashboard", label: "Dashboard", icon: BarChart3 }, { id: "tournaments", label: "Tournaments", icon: Trophy }, { id: "dues", label: "Dues", icon: IndianRupee }, { id: "players", label: "Players", icon: Users }, { id: "reports", label: "Reports", icon: Wallet }].map((it) => {
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "#fff", borderTop: "1px solid var(--line-soft)", display: "flex", padding: "8px 6px", boxShadow: "0 -4px 20px rgba(0,0,0,0.05)" }}>
+          {[
+            { id: "dashboard", label: "Dashboard", icon: BarChart3, cricketIcon: null }, 
+            { id: "tournaments", label: "Tournaments", icon: null, cricketIcon: CricketTrophy }, 
+            { id: "dues", label: "Dues", icon: IndianRupee, cricketIcon: null }, 
+            { id: "players", label: "Players", icon: null, cricketIcon: CricketHelmet }, 
+            { id: "reports", label: "Reports", icon: Wallet, cricketIcon: null }
+          ].map((it) => {
             const active = tab === it.id;
-            const Icon = it.icon;
+            const Icon = it.cricketIcon || it.icon;
             return (
-              <button key={it.id} onClick={() => setTab(it.id)} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "6px 2px", color: active ? "var(--pitch-green)" : "#9C9680" }}>
-                <Icon size={20} strokeWidth={active ? 2.4 : 2} />
-                <span style={{ fontSize: 10.5, fontWeight: 700 }}>{it.label}</span>
+              <button key={it.id} onClick={() => setTab(it.id)} className="nav-btn" style={{ flex: 1, background: active ? "rgba(245, 158, 11, 0.1)" : "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 2px", color: active ? "var(--pitch-green)" : "#9C9680", borderRadius: 10 }}>
+                <Icon size={22} strokeWidth={active ? 2.4 : 2} color={active ? "var(--pitch-green)" : "#9C9680"} />
+                <span style={{ fontSize: 10, fontWeight: active ? 800 : 600 }}>{it.label}</span>
+                {active && <div style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--pitch-green)", marginTop: -2 }} />}
               </button>
             );
           })}
@@ -612,8 +700,9 @@ export default function App() {
       )}
 
       {toast && <div style={{ position: "fixed", bottom: 84, left: "50%", transform: "translateX(-50%)", background: "var(--pitch-ink)", color: "#fff", padding: "12px 20px", borderRadius: 999, fontSize: 13, fontWeight: 600, zIndex: 200, maxWidth: "90%", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.25)" }}>{toast}</div>}
-      {showConfetti && <Confetti />}
     </div>
+    {showConfetti && <Confetti />}
+    </>
   );
 }
 
@@ -631,12 +720,28 @@ function Dashboard({ tournaments, players, playersById, onOpenTournament }) {
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-        <Card><div className="ogc-display" style={{ fontSize: 34, color: "var(--pitch-green)", lineHeight: 1 }}>{active.length}</div><div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6552", marginTop: 4, textTransform: "uppercase" }}>Active Tournaments</div></Card>
-        <Card><div className="ogc-display" style={{ fontSize: 34, color: "#8A6A16", lineHeight: 1 }}>{completed.length}</div><div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6552", marginTop: 4, textTransform: "uppercase" }}>Completed</div></Card>
-        <Card><div className="ogc-display" style={{ fontSize: 34, color: "#5C5647", lineHeight: 1 }}>{players.length}</div><div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6552", marginTop: 4, textTransform: "uppercase" }}>Total Players</div></Card>
-        <Card><div className="ogc-display" style={{ fontSize: 34, color: "var(--ball-red)", lineHeight: 1 }}>{pendingSettlements}</div><div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6552", marginTop: 4, textTransform: "uppercase" }}>Pending Settlements</div></Card>
+        <Card style={{ position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", right: 8, top: 8, opacity: 0.15 }}><CricketBat size={32} color="var(--pitch-green)" /></div>
+          <div className="ogc-display" style={{ fontSize: 34, color: "var(--pitch-green)", lineHeight: 1 }}>{active.length}</div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6552", marginTop: 4, textTransform: "uppercase" }}>Active Tournaments</div>
+        </Card>
+        <Card style={{ position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", right: 8, top: 8, opacity: 0.15 }}><CricketTrophy size={32} color="#8A6A16" /></div>
+          <div className="ogc-display" style={{ fontSize: 34, color: "#8A6A16", lineHeight: 1 }}>{completed.length}</div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6552", marginTop: 4, textTransform: "uppercase" }}>Completed</div>
+        </Card>
+        <Card style={{ position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", right: 8, top: 8, opacity: 0.15 }}><CricketHelmet size={32} color="#5C5647" /></div>
+          <div className="ogc-display" style={{ fontSize: 34, color: "#5C5647", lineHeight: 1 }}>{players.length}</div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6552", marginTop: 4, textTransform: "uppercase" }}>Total Players</div>
+        </Card>
+        <Card style={{ position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", right: 8, top: 8, opacity: 0.15 }}><CricketBall size={32} color="var(--ball-red)" /></div>
+          <div className="ogc-display" style={{ fontSize: 34, color: "var(--ball-red)", lineHeight: 1 }}>{pendingSettlements}</div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6552", marginTop: 4, textTransform: "uppercase" }}>Pending Settlements</div>
+        </Card>
       </div>
-      <SectionTitle>Tournament Summary</SectionTitle>
+      <SectionTitle><span style={{ display: "flex", alignItems: "center", gap: 6 }}><CricketStumps size={14} /> Tournament Summary</span></SectionTitle>
       {tournaments.length === 0 ? (
         <EmptyState icon={Trophy} title="No tournaments yet" sub="Create one from the Tournaments tab." />
       ) : (
@@ -940,6 +1045,10 @@ function TournamentDetail({
   const [showCloneMatchPicker, setShowCloneMatchPicker] = useState(false);
   const [waFilter, setWaFilter] = useState("all");
   const [waSort, setWaSort] = useState("desc");
+  const [settlementFilter, setSettlementFilter] = useState("all");
+  const [settlementSort, setSettlementSort] = useState("desc");
+  const [paymentFilter, setPaymentFilter] = useState("all");
+  const [paymentSort, setPaymentSort] = useState("desc");
 
   const stats = computeTournamentStats(tournament);
   // ⚠️ NEW: Replace P2P computeSettlement with Centralized Math
@@ -1026,22 +1135,69 @@ function TournamentDetail({
       {section === "payments" && (
         <div>
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}><Btn onClick={() => setShowPaymentForm(true)}><Plus size={15} /> Record Payment</Btn></div>
-          {(tournament.payments || []).length === 0 ? <EmptyState icon={IndianRupee} title="No payments yet" sub="Record who paid the tournament fee." /> : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {tournament.payments.map((p) => (
-                <Card key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-                      {playersById[p.playerId]?.name || "Unknown"}
-                      {p.type === "refund" && <Pill tone="gold">Refund</Pill>}
-                    </div>
-                    <div style={{ fontSize: 12, color: "#8A836E" }}>{fmtDate(p.date)}</div>
+          {(tournament.payments || []).length === 0 ? <EmptyState icon={IndianRupee} title="No payments yet" sub="Record who paid the tournament fee." /> : (() => {
+            const allPayments = tournament.payments || [];
+            const paymentCount = allPayments.filter(p => p.type !== "refund").length;
+            const refundCount = allPayments.filter(p => p.type === "refund").length;
+            
+            const filtered = allPayments.filter((p) => {
+              if (paymentFilter === "payment") return p.type !== "refund";
+              if (paymentFilter === "refund") return p.type === "refund";
+              return true;
+            });
+            
+            const sorted = [...filtered].sort((a, b) => {
+              return paymentSort === "asc" ? a.amount - b.amount : b.amount - a.amount;
+            });
+            
+            return (
+              <>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 8 }}>
+                    <Filter size={13} color="#8A836E" />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#8A836E", textTransform: "uppercase" }}>Type:</span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span className="ogc-mono" style={{ fontWeight: 700 }}>{inr(p.amount)}</span><button onClick={() => removePayment(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ball-red)" }}><Trash2 size={15} /></button></div>
-                </Card>
-              ))}
-            </div>
-          )}
+                  {[
+                    { id: "all", label: `All (${allPayments.length})` },
+                    { id: "payment", label: `Payment (${paymentCount})` },
+                    { id: "refund", label: `Refund (${refundCount})` }
+                  ].map((f) => (
+                    <button key={f.id} onClick={() => setPaymentFilter(f.id)} style={{ padding: "4px 10px", borderRadius: 999, border: "1.5px solid var(--line-soft)", fontSize: 11.5, fontWeight: 700, background: paymentFilter === f.id ? "var(--pitch-green)" : "#fff", color: paymentFilter === f.id ? "#fff" : "var(--pitch-ink)", cursor: "pointer", whiteSpace: "nowrap" }}>{f.label}</button>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 8 }}>
+                    <ArrowUpDown size={13} color="#8A836E" />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#8A836E", textTransform: "uppercase" }}>Sort:</span>
+                  </div>
+                  {[
+                    { id: "desc", label: "Amount (High to Low)" },
+                    { id: "asc", label: "Amount (Low to High)" }
+                  ].map((s) => (
+                    <button key={s.id} onClick={() => setPaymentSort(s.id)} style={{ padding: "4px 10px", borderRadius: 999, border: "1.5px solid var(--line-soft)", fontSize: 11.5, fontWeight: 700, background: paymentSort === s.id ? "var(--pitch-green-deep)" : "#fff", color: paymentSort === s.id ? "#fff" : "var(--pitch-ink)", cursor: "pointer", whiteSpace: "nowrap" }}>{s.label}</button>
+                  ))}
+                </div>
+                {filtered.length === 0 ? (
+                  <EmptyState icon={IndianRupee} title={`No ${paymentFilter}s recorded`} sub="Try a different filter." />
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {sorted.map((p) => (
+                      <Card key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12 }}>
+                        <div>
+                          <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                            {playersById[p.playerId]?.name || "Unknown"}
+                            {p.type === "refund" ? <Pill tone="gold">Refund</Pill> : <Pill tone="green">Payment</Pill>}
+                          </div>
+                          <div style={{ fontSize: 12, color: "#8A836E" }}>{fmtDate(p.date)}</div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span className="ogc-mono" style={{ fontWeight: 700 }}>{inr(p.amount)}</span><button onClick={() => removePayment(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ball-red)" }}><Trash2 size={15} /></button></div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()}
           {showPaymentForm && <Modal title="Record Payment" onClose={() => setShowPaymentForm(false)}><PaymentFormBody players={players} onSave={addPayment} /></Modal>}
         </div>
       )}
@@ -1112,30 +1268,79 @@ function TournamentDetail({
 
       {section === "settlement" && (
         <div>
-          {stats.balances.length === 0 ? <EmptyState icon={Wallet} title="Nothing to settle yet" sub="Add matches with participants first." /> : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-              <SectionTitle>Centralized Ledger</SectionTitle>
-              {stats.balances.sort((a, b) => b.balance - a.balance).map((b) => {
-                const settled = Math.round(b.balance) === 0;
-                return (
-                  <Card key={b.playerId} style={{ padding: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ fontWeight: 700 }}>{playersById[b.playerId]?.name || "Unknown"}</div>
-                      {settled ? <Pill tone="green"><CheckCircle2 size={11} style={{ marginRight: 3, display: "inline" }} />Settled</Pill> : b.balance > 0 ? <Pill tone="red">Owes {inr(b.balance)}</Pill> : <Pill tone="gold">Gets {inr(-b.balance)}</Pill>}
-                    </div>
-                    <div style={{ fontSize: 12, color: "#8A836E", marginTop: 4 }}>{b.matches.length} matches · Owed {inr(b.owed)} · Paid {inr(b.paid)}</div>
-                    {!settled && (
-                      <div style={{ marginTop: 8, borderTop: "1px solid var(--line-soft)", paddingTop: 8 }}>
-                        <Btn variant="outline" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => markSettled(b)}>
-                          <CheckCircle2 size={13} /> {b.balance > 0 ? "Mark Received" : "Mark Refunded"}
-                        </Btn>
+          {stats.balances.length === 0 ? <EmptyState icon={Wallet} title="Nothing to settle yet" sub="Add matches with participants first." /> : (() => {
+            const allBalances = stats.balances;
+            const owesCount = allBalances.filter(b => Math.round(b.balance) > 0).length;
+            const refundCount = allBalances.filter(b => Math.round(b.balance) < 0).length;
+            const settledCount = allBalances.filter(b => Math.round(b.balance) === 0).length;
+            
+            const filtered = allBalances.filter((b) => {
+              const bal = Math.round(b.balance);
+              if (settlementFilter === "owes") return bal > 0;
+              if (settlementFilter === "refund") return bal < 0;
+              if (settlementFilter === "settled") return bal === 0;
+              return true;
+            });
+            
+            const sorted = [...filtered].sort((a, b) => {
+              const amtA = Math.abs(a.balance);
+              const amtB = Math.abs(b.balance);
+              return settlementSort === "asc" ? amtA - amtB : amtB - amtA;
+            });
+            
+            return (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+                <SectionTitle>Centralized Ledger</SectionTitle>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 8 }}>
+                    <Filter size={13} color="#8A836E" />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#8A836E", textTransform: "uppercase" }}>Status:</span>
+                  </div>
+                  {[
+                    { id: "all", label: `All (${allBalances.length})` },
+                    { id: "owes", label: `Owes (${owesCount})` },
+                    { id: "refund", label: `Refund Due (${refundCount})` },
+                    { id: "settled", label: `Settled (${settledCount})` }
+                  ].map((f) => (
+                    <button key={f.id} onClick={() => setSettlementFilter(f.id)} style={{ padding: "4px 10px", borderRadius: 999, border: "1.5px solid var(--line-soft)", fontSize: 11.5, fontWeight: 700, background: settlementFilter === f.id ? "var(--pitch-green)" : "#fff", color: settlementFilter === f.id ? "#fff" : "var(--pitch-ink)", cursor: "pointer", whiteSpace: "nowrap" }}>{f.label}</button>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 8 }}>
+                    <ArrowUpDown size={13} color="#8A836E" />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#8A836E", textTransform: "uppercase" }}>Sort:</span>
+                  </div>
+                  {[
+                    { id: "desc", label: "Amount (High to Low)" },
+                    { id: "asc", label: "Amount (Low to High)" }
+                  ].map((s) => (
+                    <button key={s.id} onClick={() => setSettlementSort(s.id)} style={{ padding: "4px 10px", borderRadius: 999, border: "1.5px solid var(--line-soft)", fontSize: 11.5, fontWeight: 700, background: settlementSort === s.id ? "var(--pitch-green-deep)" : "#fff", color: settlementSort === s.id ? "#fff" : "var(--pitch-ink)", cursor: "pointer", whiteSpace: "nowrap" }}>{s.label}</button>
+                  ))}
+                </div>
+                {filtered.length === 0 ? (
+                  <EmptyState icon={Wallet} title={`No ${settlementFilter === "owes" ? "pending payments" : settlementFilter === "refund" ? "refunds due" : "settled players"}`} sub="Try a different filter." />
+                ) : sorted.map((b) => {
+                  const settled = Math.round(b.balance) === 0;
+                  return (
+                    <Card key={b.playerId} style={{ padding: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ fontWeight: 700 }}>{playersById[b.playerId]?.name || "Unknown"}</div>
+                        {settled ? <Pill tone="green"><CheckCircle2 size={11} style={{ marginRight: 3, display: "inline" }} />Settled</Pill> : b.balance > 0 ? <Pill tone="red">Owes {inr(b.balance)}</Pill> : <Pill tone="gold">Gets {inr(-b.balance)}</Pill>}
                       </div>
-                    )}
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+                      <div style={{ fontSize: 12, color: "#8A836E", marginTop: 4 }}>{b.matches.length} matches · Owed {inr(b.owed)} · Paid {inr(b.paid)}</div>
+                      {!settled && (
+                        <div style={{ marginTop: 8, borderTop: "1px solid var(--line-soft)", paddingTop: 8 }}>
+                          <Btn variant="outline" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => markSettled(b)}>
+                            <CheckCircle2 size={13} /> {b.balance > 0 ? "Mark Received" : "Mark Refunded"}
+                          </Btn>
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
 
