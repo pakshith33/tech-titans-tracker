@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Trophy, Users, Wallet, BarChart3, Plus, X, Check, ChevronRight,
   MessageCircle, Download, Trash2, Archive, Search, ArrowLeft, Calendar,
-  IndianRupee, UserPlus, AlertTriangle, CheckCircle2
+  IndianRupee, UserPlus, AlertTriangle, CheckCircle2, Copy, ArrowUpDown, Filter
 } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
@@ -42,8 +42,62 @@ const FontLoader = () => (
     .ogc-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .ogc-scrollbar::-webkit-scrollbar-thumb { background: var(--line-soft); border-radius: 3px; }
     button, input, select { font-family: inherit; }
+    
+    @keyframes confetti-fall {
+      0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+    @keyframes confetti-shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    .confetti-piece {
+      position: fixed;
+      top: -10px;
+      width: 10px;
+      height: 10px;
+      animation: confetti-fall 2.5s ease-out forwards, confetti-shake 0.5s ease-in-out infinite;
+      z-index: 1000;
+      pointer-events: none;
+    }
   `}</style>
 );
+
+const Confetti = () => {
+  const pieces = useMemo(() => {
+    const colors = ['#F59E0B', '#FCD34D', '#EF4444', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'];
+    return Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 0.5,
+      duration: 2 + Math.random() * 1,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: 6 + Math.random() * 8,
+      shape: Math.random() > 0.5 ? 'circle' : 'square',
+    }));
+  }, []);
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1000, overflow: 'hidden' }}>
+      {pieces.map((p) => (
+        <div
+          key={p.id}
+          className="confetti-piece"
+          style={{
+            left: `${p.left}%`,
+            width: p.size,
+            height: p.size,
+            backgroundColor: p.color,
+            borderRadius: p.shape === 'circle' ? '50%' : '2px',
+            animationDelay: `${p.delay}s`,
+            animationDuration: `${p.duration}s, 0.5s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
 
 /* ---------------------------------------------------------------------- */
 /* Helpers & Math                                                        */
@@ -374,8 +428,16 @@ export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [openTournamentId, setOpenTournamentId] = useState(null);
   const [toast, setToast] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
-  const showToast = useCallback((msg) => { setToast(msg); setTimeout(() => setToast(null), 2200); }, []);
+  const showToast = useCallback((msg, withConfetti = true) => { 
+    setToast(msg); 
+    if (withConfetti) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 2500);
+    }
+    setTimeout(() => setToast(null), 2200); 
+  }, []);
 
   const playersById = useMemo(() => Object.fromEntries(players.map((p) => [p.id, p])), [players]);
 
@@ -549,7 +611,8 @@ export default function App() {
         </div>
       )}
 
-      {toast && <div style={{ position: "fixed", bottom: 84, left: "50%", transform: "translateX(-50%)", background: "var(--pitch-ink)", color: "#fff", padding: "9px 18px", borderRadius: 999, fontSize: 13, fontWeight: 600, zIndex: 200, maxWidth: "90%", textAlign: "center" }}>{toast}</div>}
+      {toast && <div style={{ position: "fixed", bottom: 84, left: "50%", transform: "translateX(-50%)", background: "var(--pitch-ink)", color: "#fff", padding: "12px 20px", borderRadius: 999, fontSize: 13, fontWeight: 600, zIndex: 200, maxWidth: "90%", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.25)" }}>{toast}</div>}
+      {showConfetti && <Confetti />}
     </div>
   );
 }
@@ -706,7 +769,7 @@ function TournamentsTab({ tournaments, players, onSave, onOpen, showToast }) {
 
   const handleSave = (data) => {
     onSave(editing ? { ...editing, ...data } : { archived: false, ...data });
-    showToast(editing ? "Tournament updated" : "Tournament created");
+    showToast(editing ? `Tournament "${data.name}" updated` : `Tournament "${data.name}" created successfully`);
     setShowForm(false); setEditing(null);
   };
 
@@ -737,6 +800,18 @@ function TournamentsTab({ tournaments, players, onSave, onOpen, showToast }) {
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 10, borderTop: "1px solid var(--line-soft)", paddingTop: 10 }}>
                   <Btn variant="ghost" style={{ padding: "5px 8px", fontSize: 12.5 }} onClick={() => { setEditing(t); setShowForm(true); }}>Edit</Btn>
+                  <Btn variant="ghost" style={{ padding: "5px 8px", fontSize: 12.5 }} onClick={() => { 
+                    onSave({ 
+                      name: `${t.name} (Copy)`, 
+                      startDate: t.startDate, 
+                      endDate: t.endDate, 
+                      totalFee: t.totalFee, 
+                      status: "Upcoming", 
+                      treasurerId: t.treasurerId,
+                      archived: false 
+                    }); 
+                    showToast("Tournament cloned"); 
+                  }}><Copy size={13} /> Clone</Btn>
                   <Btn variant="ghost" style={{ padding: "5px 8px", fontSize: 12.5 }} onClick={() => { onSave({ ...t, archived: !t.archived }); showToast(t.archived ? "Restored from archive" : "Archived"); }}><Archive size={13} /> {t.archived ? "Unarchive" : "Archive"}</Btn>
                 </div>
               </Card>
@@ -861,6 +936,10 @@ function TournamentDetail({
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [showMatchForm, setShowMatchForm] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmMatchDelete, setConfirmMatchDelete] = useState(null);
+  const [showCloneMatchPicker, setShowCloneMatchPicker] = useState(false);
+  const [waFilter, setWaFilter] = useState("all");
+  const [waSort, setWaSort] = useState("desc");
 
   const stats = computeTournamentStats(tournament);
   // ⚠️ NEW: Replace P2P computeSettlement with Centralized Math
@@ -893,10 +972,25 @@ function TournamentDetail({
   };
   
   const saveMatch = (data, existingId) => {
+    const isEdit = !!existingId;
+    const isClone = !!showMatchForm?.cloneFrom;
     firebaseSaveMatch(data, existingId, tournament.id);
     setShowMatchForm(null);
+    showToast(isEdit ? `Match "${data.name}" updated` : isClone ? `Match "${data.name}" cloned successfully` : `Match "${data.name}" added`);
   };
-  const removeMatch = (id) => firebaseDeleteMatch(id);
+  const removeMatch = (id) => {
+    firebaseDeleteMatch(id);
+    setConfirmMatchDelete(null);
+    showToast("Match deleted");
+  };
+  
+  const cloneMatch = (sourceMatch) => {
+    setShowCloneMatchPicker(false);
+    setShowMatchForm({ 
+      cloneFrom: sourceMatch,
+      participantIds: sourceMatch.participantIds || []
+    });
+  };
   
   const exportCSV = () => downloadCSV(`${tournament.name.replace(/\s+/g, "_")}_export.csv`, tournamentCSVRows(tournament, playersById, stats, centralizedSettlement));
   
@@ -954,7 +1048,12 @@ function TournamentDetail({
 
       {section === "matches" && (
         <div>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}><Btn onClick={() => setShowMatchForm({})}><Plus size={15} /> Add Match</Btn></div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 10 }}>
+            {(tournament.matches || []).length > 0 && (
+              <Btn variant="outline" onClick={() => setShowCloneMatchPicker(true)}><Copy size={15} /> Clone from Previous</Btn>
+            )}
+            <Btn onClick={() => setShowMatchForm({})}><Plus size={15} /> Add Match</Btn>
+          </div>
           {(tournament.matches || []).length === 0 ? <EmptyState icon={Calendar} title="No matches yet" sub="Add matches as the tournament progresses." /> : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {[...stats.perMatch].sort((a, b) => new Date(a.date) - new Date(b.date)).map((m) => (
@@ -969,13 +1068,45 @@ function TournamentDetail({
                   </div>
                   <div style={{ display: "flex", gap: 8, borderTop: "1px solid var(--line-soft)", paddingTop: 8 }}>
                     <Btn variant="ghost" style={{ padding: "4px 8px", fontSize: 12 }} onClick={() => setShowMatchForm(m)}>Edit</Btn>
-                    <Btn variant="ghost" style={{ padding: "4px 8px", fontSize: 12, color: "var(--ball-red)" }} onClick={() => removeMatch(m.id)}>Remove</Btn>
+                    <Btn variant="ghost" style={{ padding: "4px 8px", fontSize: 12, color: "var(--ball-red)" }} onClick={() => setConfirmMatchDelete(m)}>Remove</Btn>
                   </div>
                 </Card>
               ))}
             </div>
           )}
-          {showMatchForm && <Modal title={showMatchForm.id ? "Edit Match" : "Add Match"} onClose={() => setShowMatchForm(null)}><MatchFormBody players={players} firebaseSavePlayer={firebaseSavePlayer} initial={showMatchForm.id ? showMatchForm : null} onSave={(data) => saveMatch(data, showMatchForm.id)} /></Modal>}
+          {showMatchForm && (
+            <Modal title={showMatchForm.id ? "Edit Match" : showMatchForm.cloneFrom ? "Clone Match" : "Add Match"} onClose={() => setShowMatchForm(null)}>
+              <MatchFormBody 
+                players={players} 
+                firebaseSavePlayer={firebaseSavePlayer} 
+                initial={showMatchForm.id ? showMatchForm : null} 
+                cloneParticipants={showMatchForm.cloneFrom ? showMatchForm.participantIds : null}
+                onSave={(data) => saveMatch(data, showMatchForm.id)} 
+              />
+            </Modal>
+          )}
+          {showCloneMatchPicker && (
+            <Modal title="Select Match to Clone" onClose={() => setShowCloneMatchPicker(false)}>
+              <p style={{ fontSize: 13, color: "#8A836E", marginBottom: 12 }}>Choose a match to clone. The players from that match will be pre-selected.</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {[...stats.perMatch].sort((a, b) => new Date(a.date) - new Date(b.date)).map((m) => (
+                  <Card key={m.id} onClick={() => cloneMatch(m)} style={{ padding: 12, cursor: "pointer" }}>
+                    <div style={{ fontWeight: 700 }}>{m.name}</div>
+                    <div style={{ fontSize: 12, color: "#8A836E", marginTop: 2 }}>{fmtDate(m.date)} · {m.participantCount} player(s)</div>
+                  </Card>
+                ))}
+              </div>
+            </Modal>
+          )}
+          {confirmMatchDelete && (
+            <Modal title="Delete Match?" onClose={() => setConfirmMatchDelete(null)}>
+              <p style={{ fontSize: 14, lineHeight: 1.5, color: "#5C5647" }}>Are you sure you want to delete <b>{confirmMatchDelete.name}</b>? This will affect settlement calculations and can't be undone.</p>
+              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                <Btn variant="ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setConfirmMatchDelete(null)}>Cancel</Btn>
+                <Btn variant="danger" style={{ flex: 1, justifyContent: "center" }} onClick={() => removeMatch(confirmMatchDelete.id)}><Trash2 size={14} /> Delete Match</Btn>
+              </div>
+            </Modal>
+          )}
         </div>
       )}
 
@@ -1011,20 +1142,70 @@ function TournamentDetail({
       {/* ⚠️ NEW: WhatsApp Tab with Click-to-Chat functionality */}
       {section === "whatsapp" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {tournament.status !== "Completed" ? <EmptyState icon={MessageCircle} title="Mark tournament as Completed" sub="WhatsApp summaries generate once the tournament is finished." /> : centralizedSettlement.length === 0 ? <EmptyState icon={MessageCircle} title="No player data yet" sub="Add matches and participants first." /> : centralizedSettlement.filter((b) => Math.round(b.balance) !== 0).length === 0 ? <EmptyState icon={CheckCircle2} title="Everyone is settled!" sub="No pending payments or refunds to notify." /> : centralizedSettlement.filter((b) => Math.round(b.balance) !== 0).map((b) => {
+          {tournament.status !== "Completed" ? <EmptyState icon={MessageCircle} title="Mark tournament as Completed" sub="WhatsApp summaries generate once the tournament is finished." /> : centralizedSettlement.length === 0 ? <EmptyState icon={MessageCircle} title="No player data yet" sub="Add matches and participants first." /> : (() => {
+            const unsettled = centralizedSettlement.filter((b) => Math.round(b.balance) !== 0);
+            if (unsettled.length === 0) return <EmptyState icon={CheckCircle2} title="Everyone is settled!" sub="No pending payments or refunds to notify." />;
+            
+            const filtered = unsettled.filter((b) => {
+              if (waFilter === "due") return b.balance > 0;
+              if (waFilter === "refund") return b.balance < 0;
+              return true;
+            });
+            
+            const sorted = [...filtered].sort((a, b) => {
+              const amtA = Math.abs(a.balance);
+              const amtB = Math.abs(b.balance);
+              return waSort === "asc" ? amtA - amtB : amtB - amtA;
+            });
+            
+            const dueCount = unsettled.filter((b) => b.balance > 0).length;
+            const refundCount = unsettled.filter((b) => b.balance < 0).length;
+            
             return (
-              <Card key={b.playerId} style={{ padding: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 6 }}>
-                  <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-                    {playersById[b.playerId]?.name}
-                    {b.upiLink && <Pill tone="green"><IndianRupee size={11} style={{ marginRight: 3, display: "inline" }} />UPI link included</Pill>}
+              <>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 8 }}>
+                    <Filter size={13} color="#8A836E" />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#8A836E", textTransform: "uppercase" }}>Filter:</span>
                   </div>
-                  <a href={b.whatsappLink} target="_blank" rel="noopener noreferrer" style={{ background: "#25D366", color: "#fff", border: "none", borderRadius: 8, padding: "6px 10px", display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, cursor: "pointer", textDecoration: "none" }}><MessageCircle size={13} /> Send</a>
+                  {[
+                    { id: "all", label: `All (${unsettled.length})` },
+                    { id: "due", label: `Due (${dueCount})` },
+                    { id: "refund", label: `Refund (${refundCount})` }
+                  ].map((f) => (
+                    <button key={f.id} onClick={() => setWaFilter(f.id)} style={{ padding: "4px 10px", borderRadius: 999, border: "1.5px solid var(--line-soft)", fontSize: 11.5, fontWeight: 700, background: waFilter === f.id ? "var(--pitch-green)" : "#fff", color: waFilter === f.id ? "#fff" : "var(--pitch-ink)", cursor: "pointer", whiteSpace: "nowrap" }}>{f.label}</button>
+                  ))}
                 </div>
-                <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: 12.5, margin: 0, color: "#5C5647", background: "var(--pitch-cream)", padding: 10, borderRadius: 8 }}>{b.message}</pre>
-              </Card>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 8 }}>
+                    <ArrowUpDown size={13} color="#8A836E" />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#8A836E", textTransform: "uppercase" }}>Sort:</span>
+                  </div>
+                  {[
+                    { id: "desc", label: "Amount (High to Low)" },
+                    { id: "asc", label: "Amount (Low to High)" }
+                  ].map((s) => (
+                    <button key={s.id} onClick={() => setWaSort(s.id)} style={{ padding: "4px 10px", borderRadius: 999, border: "1.5px solid var(--line-soft)", fontSize: 11.5, fontWeight: 700, background: waSort === s.id ? "var(--pitch-green-deep)" : "#fff", color: waSort === s.id ? "#fff" : "var(--pitch-ink)", cursor: "pointer", whiteSpace: "nowrap" }}>{s.label}</button>
+                  ))}
+                </div>
+                {filtered.length === 0 ? (
+                  <EmptyState icon={MessageCircle} title={`No ${waFilter === "due" ? "pending dues" : "refunds"}`} sub="Try a different filter." />
+                ) : sorted.map((b) => (
+                  <Card key={b.playerId} style={{ padding: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 6 }}>
+                      <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                        {playersById[b.playerId]?.name}
+                        {b.balance > 0 ? <Pill tone="red">{inr(b.balance)}</Pill> : <Pill tone="gold">{inr(-b.balance)}</Pill>}
+                        {b.upiLink && <Pill tone="green"><IndianRupee size={11} style={{ marginRight: 3, display: "inline" }} />UPI</Pill>}
+                      </div>
+                      <a href={b.whatsappLink} target="_blank" rel="noopener noreferrer" style={{ background: "#25D366", color: "#fff", border: "none", borderRadius: 8, padding: "6px 10px", display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, cursor: "pointer", textDecoration: "none" }}><MessageCircle size={13} /> Send</a>
+                    </div>
+                    <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: 12.5, margin: 0, color: "#5C5647", background: "var(--pitch-cream)", padding: 10, borderRadius: 8 }}>{b.message}</pre>
+                  </Card>
+                ))}
+              </>
             );
-          })}
+          })()}
         </div>
       )}
 
@@ -1061,10 +1242,10 @@ function PaymentFormBody({ players, onSave }) {
   );
 }
 
-function MatchFormBody({ players, firebaseSavePlayer, initial, onSave }) {
+function MatchFormBody({ players, firebaseSavePlayer, initial, cloneParticipants, onSave }) {
   const [name, setName] = useState(initial?.name || "");
   const [date, setDate] = useState(initial?.date || new Date().toISOString().slice(0, 10));
-  const [participantIds, setParticipantIds] = useState(initial?.participantIds || []);
+  const [participantIds, setParticipantIds] = useState(initial?.participantIds || cloneParticipants || []);
   const [additionalAmount, setAdditionalAmount] = useState(initial?.additionalAmount ?? "");
   const [quickAdd, setQuickAdd] = useState(false);
   const [qName, setQName] = useState(""); const [qMobile, setQMobile] = useState("");
