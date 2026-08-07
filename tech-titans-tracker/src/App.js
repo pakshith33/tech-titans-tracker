@@ -58,6 +58,140 @@ const formatWhatsAppNumber = (rawNumber) => {
   return cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber;
 };
 
+/* ---------------------------------------------------------------------- */
+/* Cricheroes Import Helpers                                              */
+/* ---------------------------------------------------------------------- */
+const REEF_PROXY_BASE = "https://reef-proxy.fly.dev";
+
+async function fetchCricheroesScorecard(url) {
+  if (!url || !url.includes("cricheroes.com/scorecard")) {
+    throw new Error("Invalid Cricheroes scorecard URL");
+  }
+  const proxyUrl = `${REEF_PROXY_BASE}/scrape?url=${encodeURIComponent(url)}&wait=5`;
+  const response = await fetch(proxyUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch scorecard: ${response.status}`);
+  }
+  return await response.text();
+}
+
+function parseCricheroesHtml(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const teams = [];
+  
+  // Look for team names in headers/tabs
+  const teamHeaders = doc.querySelectorAll('[class*="team-name"], [class*="teamName"], .team-title, [class*="innings-header"]');
+  const teamNames = [];
+  teamHeaders.forEach(el => {
+    const name = el.textContent?.trim();
+    if (name && name.length > 1 && name.length < 50 && !teamNames.includes(name)) {
+      teamNames.push(name);
+    }
+  });
+
+  // Extract player names from batting/bowling tables
+  const playerRows = doc.querySelectorAll('[class*="batsman"], [class*="player-name"], [class*="batter"], tr[class*="player"]');
+  const allPlayers = new Set();
+  
+  playerRows.forEach(row => {
+    const nameEl = row.querySelector('a, [class*="name"], td:first-child');
+    if (nameEl) {
+      const name = nameEl.textContent?.trim().replace(/\s+/g, ' ');
+      if (name && name.length > 1 && name.length < 40 && !/^\d/.test(name) && !/^(total|extras|fall|did not|yet to)/i.test(name)) {
+        allPlayers.add(name);
+      }
+    }
+  });
+
+  // Alternative: look for any links that might be player profiles
+  const playerLinks = doc.querySelectorAll('a[href*="/player/"], a[href*="player-profile"]');
+  playerLinks.forEach(link => {
+    const name = link.textContent?.trim().replace(/\s+/g, ' ');
+    if (name && name.length > 1 && name.length < 40 && !/^\d/.test(name)) {
+      allPlayers.add(name);
+    }
+  });
+
+  // Try to find structured team data
+  const scorecardSections = doc.querySelectorAll('[class*="score-card"], [class*="innings-score"], .card-body');
+  scorecardSections.forEach((section, idx) => {
+    const sectionPlayers = [];
+    const rows = section.querySelectorAll('tr, [class*="player-row"], [class*="batsman-row"]');
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td, [class*="player-name"]');
+      if (cells.length > 0) {
+        const nameCell = cells[0];
+        const link = nameCell.querySelector('a');
+        const name = (link || nameCell).textContent?.trim().replace(/\s+/g, ' ');
+        if (name && name.length > 1 && name.length < 40 && !/^\d/.test(name) && 
+            !/^(total|extras|fall|did not|yet to|bowling|batting)/i.test(name)) {
+          sectionPlayers.push(name);
+        }
+      }
+    });
+    if (sectionPlayers.length > 0) {
+      teams.push({
+        name: teamNames[idx] || `Team ${idx + 1}`,
+        players: [...new Set(sectionPlayers)]
+      });
+    }
+  });
+
+  // Fallback: if we couldn't parse structured teams, put all players in one list
+  if (teams.length === 0 && allPlayers.size > 0) {
+    const playerArray = Array.from(allPlayers);
+    const midpoint = Math.ceil(playerArray.length / 2);
+    teams.push({
+      name: teamNames[0] || "Team 1",
+      players: playerArray.slice(0, midpoint)
+    });
+    if (playerArray.length > midpoint) {
+      teams.push({
+        name: teamNames[1] || "Team 2", 
+        players: playerArray.slice(midpoint)
+      });
+    }
+  }
+
+  return { teams, rawPlayerCount: allPlayers.size };
+}
+
+function matchPlayersToExisting(importedNames, existingPlayers) {
+  const normalize = (str) => str.toLowerCase().replace(/[^a-z0-9]/g, '');
+  
+  return importedNames.map(importedName => {
+    const normalizedImported = normalize(importedName);
+    
+    // Try exact match first
+    let match = existingPlayers.find(p => normalize(p.name) === normalizedImported);
+    
+    // Try partial match (imported name contains existing or vice versa)
+    if (!match) {
+      match = existingPlayers.find(p => {
+        const normalizedExisting = normalize(p.name);
+        return normalizedExisting.includes(normalizedImported) || 
+               normalizedImported.includes(normalizedExisting);
+      });
+    }
+    
+    // Try matching first name or last name
+    if (!match) {
+      const importedParts = normalizedImported.split(/\s+/);
+      match = existingPlayers.find(p => {
+        const existingParts = normalize(p.name).split(/\s+/);
+        return importedParts.some(ip => existingParts.some(ep => ep === ip && ip.length > 2));
+      });
+    }
+    
+    return {
+      importedName,
+      matchedPlayer: match || null,
+      isNew: !match
+    };
+  });
+}
+
 function computeTournamentStats(t) {
   const numMatches = t.matches ? t.matches.length : 0;
   const costPerMatch = numMatches > 0 ? Math.round(t.totalFee / numMatches) : 0;
@@ -1041,6 +1175,188 @@ function TournamentDetail({
   );
 }
 
+function ImportCricheroesModal({ existingPlayers, onImport, onClose, firebaseSavePlayer }) {
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [teams, setTeams] = useState([]);
+  const [selectedTeamIdx, setSelectedTeamIdx] = useState(0);
+  const [matchedPlayers, setMatchedPlayers] = useState([]);
+  const [step, setStep] = useState("url"); // url -> select -> confirm
+
+  const handleFetch = async () => {
+    if (!url.includes("cricheroes.com")) {
+      setError("Please enter a valid Cricheroes scorecard URL");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const html = await fetchCricheroesScorecard(url);
+      const parsed = parseCricheroesHtml(html);
+      if (parsed.teams.length === 0) {
+        setError("Could not find any players in this scorecard. Try a different URL.");
+        setLoading(false);
+        return;
+      }
+      setTeams(parsed.teams);
+      setSelectedTeamIdx(0);
+      setStep("select");
+    } catch (err) {
+      setError(err.message || "Failed to fetch scorecard. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  const handleTeamSelect = () => {
+    const team = teams[selectedTeamIdx];
+    if (!team) return;
+    const matched = matchPlayersToExisting(team.players, existingPlayers);
+    setMatchedPlayers(matched);
+    setStep("confirm");
+  };
+
+  const handleConfirmImport = async () => {
+    const playerIds = [];
+    for (const m of matchedPlayers) {
+      if (m.matchedPlayer) {
+        playerIds.push(m.matchedPlayer.id);
+      } else {
+        const newId = uid();
+        await firebaseSavePlayer({ 
+          id: newId, 
+          name: m.importedName, 
+          mobile: "0000000000",
+          active: true 
+        });
+        playerIds.push(newId);
+      }
+    }
+    onImport(playerIds);
+  };
+
+  return (
+    <Modal title="Import from Cricheroes" onClose={onClose} wide>
+      {step === "url" && (
+        <>
+          <Field label="Cricheroes Scorecard URL">
+            <input
+              style={inputStyle}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://cricheroes.com/scorecard/..."
+            />
+          </Field>
+          {error && (
+            <div style={{ color: "var(--ball-red)", fontSize: 12.5, marginBottom: 12, padding: "8px 12px", background: "#F6E1DE", borderRadius: 8 }}>
+              {error}
+            </div>
+          )}
+          <div style={{ fontSize: 12, color: "#8A836E", marginBottom: 14 }}>
+            Paste a Cricheroes scorecard URL to import players. Example:<br/>
+            <code style={{ fontSize: 11, background: "#EDEBE3", padding: "2px 6px", borderRadius: 4 }}>
+              cricheroes.com/scorecard/26360690/...
+            </code>
+          </div>
+          <Btn 
+            style={{ width: "100%", justifyContent: "center" }} 
+            disabled={!url.trim() || loading}
+            onClick={handleFetch}
+          >
+            {loading ? "Fetching..." : "Fetch Players"}
+          </Btn>
+        </>
+      )}
+
+      {step === "select" && (
+        <>
+          <div style={{ fontSize: 13, color: "#5C5647", marginBottom: 14 }}>
+            Found {teams.length} team(s). Select which team to import:
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+            {teams.map((team, idx) => (
+              <Card
+                key={idx}
+                onClick={() => setSelectedTeamIdx(idx)}
+                style={{
+                  cursor: "pointer",
+                  border: selectedTeamIdx === idx ? "2px solid var(--pitch-green)" : "1px solid var(--line-soft)",
+                  padding: 12
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  {team.name}
+                  {selectedTeamIdx === idx && <CheckCircle2 size={16} color="var(--pitch-green)" />}
+                </div>
+                <div style={{ fontSize: 12, color: "#8A836E" }}>
+                  {team.players.length} players: {team.players.slice(0, 3).join(", ")}{team.players.length > 3 ? "..." : ""}
+                </div>
+              </Card>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn variant="ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setStep("url")}>
+              <ArrowLeft size={14} /> Back
+            </Btn>
+            <Btn style={{ flex: 1, justifyContent: "center" }} onClick={handleTeamSelect}>
+              Continue
+            </Btn>
+          </div>
+        </>
+      )}
+
+      {step === "confirm" && (
+        <>
+          <div style={{ fontSize: 13, color: "#5C5647", marginBottom: 10 }}>
+            Review players to import from <b>{teams[selectedTeamIdx]?.name}</b>:
+          </div>
+          <div style={{ maxHeight: 300, overflowY: "auto", marginBottom: 14 }} className="ogc-scrollbar">
+            {matchedPlayers.map((m, idx) => (
+              <div
+                key={idx}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "8px 10px",
+                  background: idx % 2 === 0 ? "var(--pitch-cream)" : "var(--card)",
+                  borderRadius: 6,
+                  marginBottom: 4
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{m.importedName}</span>
+                {m.matchedPlayer ? (
+                  <Pill tone="green">
+                    <CheckCircle2 size={11} style={{ marginRight: 3, display: "inline" }} />
+                    {m.matchedPlayer.name}
+                  </Pill>
+                ) : (
+                  <Pill tone="gold">
+                    <UserPlus size={11} style={{ marginRight: 3, display: "inline" }} />
+                    New Player
+                  </Pill>
+                )}
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 11.5, color: "#8A836E", marginBottom: 14 }}>
+            <b>{matchedPlayers.filter(m => m.matchedPlayer).length}</b> matched to existing players, 
+            <b> {matchedPlayers.filter(m => !m.matchedPlayer).length}</b> new players will be created.
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn variant="ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setStep("select")}>
+              <ArrowLeft size={14} /> Back
+            </Btn>
+            <Btn style={{ flex: 1, justifyContent: "center" }} onClick={handleConfirmImport}>
+              <Check size={14} /> Import {matchedPlayers.length} Players
+            </Btn>
+          </div>
+        </>
+      )}
+    </Modal>
+  );
+}
+
 function PaymentFormBody({ players, onSave }) {
   const [playerId, setPlayerId] = useState(players[0]?.id || "");
   const [amount, setAmount] = useState("");
@@ -1068,6 +1384,7 @@ function MatchFormBody({ players, firebaseSavePlayer, initial, onSave }) {
   const [additionalAmount, setAdditionalAmount] = useState(initial?.additionalAmount ?? "");
   const [quickAdd, setQuickAdd] = useState(false);
   const [qName, setQName] = useState(""); const [qMobile, setQMobile] = useState("");
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const toggle = (id) => setParticipantIds((ids) => ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]);
   const canSave = name.trim() && date && participantIds.length > 0;
@@ -1080,6 +1397,11 @@ function MatchFormBody({ players, firebaseSavePlayer, initial, onSave }) {
     setQName(""); setQMobile(""); setQuickAdd(false);
   };
 
+  const handleCricheroesImport = (importedPlayerIds) => {
+    setParticipantIds((ids) => [...new Set([...ids, ...importedPlayerIds])]);
+    setShowImportModal(false);
+  };
+
   return (
     <>
       <Field label="Match number / name"><input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Match 3 vs Titans" /></Field>
@@ -1088,14 +1410,27 @@ function MatchFormBody({ players, firebaseSavePlayer, initial, onSave }) {
         <input type="number" min="0" style={inputStyle} value={additionalAmount} onChange={(e) => setAdditionalAmount(e.target.value)} placeholder="0 — e.g. extra ball/umpire cost" />
         <div style={{ fontSize: 11.5, color: "#8A836E", marginTop: 4 }}>Optional. Split equally among participants on top of the base share.</div>
       </Field>
-      <Field label={`Participants (${participantIds.length} selected)`}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 220, overflowY: "auto", padding: "4px 2px" }} className="ogc-scrollbar">
-          {players.map((p) => {
-            const sel = participantIds.includes(p.id);
-            return <button key={p.id} onClick={() => toggle(p.id)} type="button" style={{ padding: "6px 12px", borderRadius: 999, border: `1.5px solid ${sel ? "var(--pitch-green)" : "var(--line-soft)"}`, background: sel ? "var(--pitch-green)" : "#fff", color: sel ? "#fff" : "var(--pitch-ink)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{p.name}</button>;
-          })}
+      
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#6B6552", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          Participants ({participantIds.length} selected)
         </div>
-      </Field>
+        <button 
+          onClick={() => setShowImportModal(true)} 
+          style={{ background: "none", border: "1px solid var(--pitch-green)", color: "var(--pitch-green)", fontWeight: 600, fontSize: 11.5, cursor: "pointer", padding: "4px 10px", borderRadius: 6, display: "flex", alignItems: "center", gap: 4 }}
+        >
+          <Download size={12} /> Import from Cricheroes
+        </button>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 220, overflowY: "auto", padding: "4px 2px", marginBottom: 12, border: "1px solid var(--line-soft)", borderRadius: 8 }} className="ogc-scrollbar">
+        {players.length === 0 ? (
+          <div style={{ padding: 16, color: "#8A836E", fontSize: 13, width: "100%", textAlign: "center" }}>No players yet. Add players or import from Cricheroes.</div>
+        ) : players.map((p) => {
+          const sel = participantIds.includes(p.id);
+          return <button key={p.id} onClick={() => toggle(p.id)} type="button" style={{ padding: "6px 12px", borderRadius: 999, border: `1.5px solid ${sel ? "var(--pitch-green)" : "var(--line-soft)"}`, background: sel ? "var(--pitch-green)" : "#fff", color: sel ? "#fff" : "var(--pitch-ink)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{p.name}</button>;
+        })}
+      </div>
+
       {!quickAdd ? (
         <button onClick={() => setQuickAdd(true)} style={{ background: "none", border: "none", color: "var(--pitch-green-deep)", fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 14, display: "flex", alignItems: "center", gap: 4 }}><UserPlus size={14} /> New player joining this match</button>
       ) : (
@@ -1106,6 +1441,15 @@ function MatchFormBody({ players, firebaseSavePlayer, initial, onSave }) {
         </div>
       )}
       <Btn style={{ width: "100%", justifyContent: "center" }} disabled={!canSave} onClick={() => canSave && onSave({ name: name.trim(), date, participantIds, additionalAmount: additionalAmount === "" ? 0 : Number(additionalAmount) })}><Check size={16} /> Save Match</Btn>
+      
+      {showImportModal && (
+        <ImportCricheroesModal
+          existingPlayers={players}
+          onImport={handleCricheroesImport}
+          onClose={() => setShowImportModal(false)}
+          firebaseSavePlayer={firebaseSavePlayer}
+        />
+      )}
     </>
   );
 }

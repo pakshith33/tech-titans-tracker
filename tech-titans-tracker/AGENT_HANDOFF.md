@@ -101,6 +101,28 @@ A 5th bottom-nav tab, `DuesTab` in `App.js`, added to answer "who still owes mon
 - A small top card shows a count of "Tournaments with outstanding dues."
 - Explicitly scoped down (confirmed with user, don't add without re-asking): no grand total across all tournaments, no WhatsApp button embedded in this tab, no per-player match/owed/paid breakdown — those already exist elsewhere (Settlement tab, WhatsApp tab, Reports tab) and this view was meant to stay simple.
 
+## 8c. Cricheroes player import
+
+When adding a match inside a tournament, there's an **"Import from Cricheroes"** button that lets users import players directly from a Cricheroes scorecard URL (e.g., `https://cricheroes.com/scorecard/26360690/...`).
+
+**How it works:**
+1. User clicks "Import from Cricheroes" in the match form
+2. User pastes a Cricheroes scorecard URL
+3. App fetches the page via **Reef Proxy** (`https://reef-proxy.fly.dev/scrape?url=...&wait=5`) — a free CORS proxy that renders JavaScript and returns HTML
+4. App parses the HTML to extract team names and player names
+5. User selects which team to import
+6. App shows a preview with matching status: green = matched to existing player, yellow = new player will be created
+7. On confirm, new players are auto-created (with placeholder mobile `0000000000`) and all imported players are selected as participants
+
+**Key technical details:**
+- `fetchCricheroesScorecard(url)` — calls Reef Proxy `/scrape` endpoint
+- `parseCricheroesHtml(html)` — extracts teams/players from rendered HTML using DOMParser
+- `matchPlayersToExisting(names, players)` — fuzzy matching by normalized names
+- `ImportCricheroesModal` — multi-step modal for URL input → team selection → confirm import
+- Rate limit: Reef Proxy free tier is 10 requests/hour — a warning should be added if this becomes an issue
+
+**Why Reef Proxy instead of direct fetch:** Cricheroes is a React SPA that renders player data via JavaScript. A simple fetch would return empty HTML. CORS would also block browser requests. Reef Proxy renders the page server-side and returns the full HTML with permissive CORS headers. Only public Cricheroes URLs flow through the proxy — no app data or Firebase credentials.
+
 ## 9. Ideas raised but explicitly NOT built (don't assume these are wanted — ask first)
 
 From earlier planning rounds, these were discussed and intentionally deferred/skipped:
