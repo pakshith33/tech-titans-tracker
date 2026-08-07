@@ -2,7 +2,7 @@
 
 This file exists so a fresh agent session (or a future you) can pick up this project without re-reading the entire chat history. It captures the current state, the reasoning behind key decisions, and known constraints/gotchas.
 
-Last updated: 2026-08-04. Repo is clean and fully pushed at this point (`git log --oneline -1` → `301e1ea Link updates`, in sync with `origin/main`).
+Last updated: 2026-08-07. Major UI enhancements and new features added.
 
 ## 1. What this app is
 
@@ -13,7 +13,7 @@ A single-page React app for a group called "Tech Titans" to track shared tournam
 - Firebase project: `tech-titans-expense-tracker`
 - Local path: `tech-titans-tracker/tech-titans-tracker/` is the actual CRA app root (note the doubled folder name — the outer `tech-titans-tracker/` is the git repo root, the inner one is where `package.json` lives).
 
-Almost the entire app lives in one file: [src/App.js](src/App.js) (~1040 lines). It's a deliberately single-file CRA app — no router library, no component folder structure. Keep that pattern unless there's a strong reason to split it up.
+Almost the entire app lives in one file: [src/App.js](src/App.js) (~1550 lines). It's a deliberately single-file CRA app — no router library, no component folder structure. Keep that pattern unless there's a strong reason to split it up.
 
 ## 2. Data model (Firestore, no backend server)
 
@@ -49,12 +49,12 @@ All amounts are computed client-side from these collections — there's no separ
 
 This went through several rounds of changes — here's the current final state and *why*, so it isn't accidentally re-litigated:
 
-1. **Message format**: for each player, the message opens with a per-match fee breakdown (`↣ {match name} ➤ Match Fee: ₹{amount}`), then `Total Cost For All Matches`, `You have paid a total of`, `Total Amount Due` (this line's number is signed — negative naturally reads as "they're owed a refund", no separate wording needed). Then one of 3 closing variants depending on owed/overpaid/settled — this 3-variant structure was explicitly kept per user request (not collapsed into one generic template).
-2. **UPI deep link**: `buildUpiPaymentLink()` builds a `upi://pay?pa=...&pn=...&am=...&cu=INR&tn=...` link from the treasurer's `upiId`. Opens PhonePe/GPay/etc directly with amount pre-filled.
-3. **Why there's also a "Pay Now" landing page**: raw `upi://` custom-scheme links are NOT reliably auto-linked/tappable inside a plain WhatsApp text message (WhatsApp mainly auto-links `http(s)://`). So `buildPayNowUrl()` wraps the same params into a link to our *own* hosted page: `https://pakshith33.github.io/tech-titans-tracker/#/pay?pa=...&pn=...&am=...&tn=...`. WhatsApp reliably auto-links this since it's a normal https URL.
+1. **Message format**: for each player, the message opens with a per-match fee breakdown (`↣ {match name} ➤ Match Fee: ₹{amount}`) **sorted by date ascending**, then `Total Cost For All Matches`, `You have paid a total of`, `Total Amount Due` (this line's number is signed — negative naturally reads as "they're owed a refund", no separate wording needed). Then one of 3 closing variants depending on owed/overpaid/settled — this 3-variant structure was explicitly kept per user request (not collapsed into one generic template).
+2. **UPI deep link (amount intentionally omitted)**: `buildUpiPaymentLink()` builds a `upi://pay?pa=...&pn=...&cu=INR` link from the treasurer's `upiId` **without the amount**. This is deliberate — see 4c below for why.
+3. **Why there's also a "Pay Now" landing page**: raw `upi://` custom-scheme links are NOT reliably auto-linked/tappable inside a plain WhatsApp text message (WhatsApp mainly auto-links `http(s)://`). So `buildPayNowUrl()` wraps the same params into a link to our *own* hosted page: `https://pakshith33.github.io/tech-titans-tracker/#/pay?pa=...&pn=...&am=...&tn=...`. WhatsApp reliably auto-links this since it's a normal https URL. (Note: the URL still contains the amount for display purposes, but the UPI deep links from this page don't include it.)
 4. **The `PayPage` component + `#/pay` hash route**: added directly in `App.js`. `parsePayParamsFromHash()` reads `window.location.hash`; if it starts with `#/pay`, `App()` returns `<PayPage params={...}/>` as the very first thing, before any auth check. This page is intentionally public and reads nothing from Firestore — everything it needs is already in the URL (same info already visible in the WhatsApp message text, so no new privacy exposure). Hash-based routing was chosen specifically because GitHub Pages has no server-side rewrites — only the part of the URL before `#` is ever sent to the server, so this needs zero server config.
-4b. **iOS fix for the generic `upi://pay` link (added after a real user report of "payment links not working on iPhone")**: the generic `upi://` scheme only works reliably on Android, where the OS shows a native picker of every installed UPI app. iOS has no such picker — one specific app silently claims the generic scheme (often WhatsApp itself, since it registers as a UPI handler too), with zero way for us to control which, and no error if nothing claims it. This is a documented iOS/NPCI limitation, not something fixable via URL parameters. Fix: `buildUpiAppLinks()` builds per-app custom-scheme links instead (`tez://upi/pay?...` for Google Pay — **not** `gpay://`, which silently fails on iOS — `phonepe://pay?...` for PhonePe, `paytmmp://pay?...` for Paytm), and `PayPage` now renders one button per app plus an "Other UPI App" fallback using the original generic link, plus a tap-to-copy UPI ID (`params.vpa`) as a manual-entry fallback. Don't collapse this back into a single generic button without re-confirming — that regresses iOS.
-4c. **₹2,000 limit on UPI deep link payments (NPCI security rule, cannot be bypassed)**: UPI apps (PhonePe, GPay, Paytm) treat deep-link/intent payments similarly to "QR Share & Pay" (scanning a QR from gallery) rather than verified merchant checkout. NPCI enforces a ₹2,000 cap on such payments to non-verified merchants as fraud protection. Since the treasurer is a regular person (not an NPCI-registered merchant with `mc`/`tr` params), this limit applies. **This is not fixable via URL parameters or code changes** — faking merchant credentials would violate UPI terms. The fix: `PayPage` now detects amounts > ₹2,000, shows a warning, and prominently displays the "copy UPI ID and pay manually" flow (which bypasses this limit since it's a normal P2P transfer inside the app). The app buttons are de-emphasized but still shown as a fallback for users who want to try anyway.
+4b. **iOS fix for the generic `upi://pay` link (added after a real user report of "payment links not working on iPhone")**: the generic `upi://` scheme only works reliably on Android, where the OS shows a native picker of every installed UPI app. iOS has no such picker — one specific app silently claims the generic scheme (often WhatsApp itself, since it registers as a UPI handler too), with zero way for us to control which, and no error if nothing claims it. This is a documented iOS/NPCI limitation, not something fixable via URL parameters. Fix: `buildUpiAppLinks()` builds per-app custom-scheme links instead (`tez://upi/pay?...` for Google Pay — **not** `gpay://`, which silently fails on iOS — `phonepe://pay?...` for PhonePe, `paytmmp://pay?...` for Paytm), and `PayPage` now renders one button per app plus an "Other UPI App" fallback using the original generic link, plus a tap-to-copy UPI ID with a **Copy icon** for clarity. Don't collapse this back into a single generic button without re-confirming — that regresses iOS.
+4c. **₹2,000 limit bypass (amount removed from deep links)**: UPI apps enforce a ₹2,000 cap on deep-link payments with pre-filled amounts (NPCI security rule). **The fix**: all UPI deep links now omit the amount entirely. The app opens with just the UPI ID pre-filled, and the user enters the amount manually. This bypasses the limit since manual-entry P2P transfers have no cap. The `PayPage` prominently displays "Enter ₹X,XXX when the app opens" so users know what to type. Buttons say "Open Google Pay" etc. (not "Pay via") to reflect this flow.
 5. **"Pay Now" as clickable *text* (hiding the URL) is impossible** — explicitly investigated and confirmed with the user. WhatsApp consumer chat messages (opened via a `wa.me` pre-filled link) have zero markdown/hyperlink support — no `[text](url)` syntax. WhatsApp only ever auto-links raw URLs and displays the literal URL as the clickable text. The only way to get a real tappable "Pay Now" *button* (hiding the URL) is the paid WhatsApp Business API with Meta-approved message templates — a completely different, heavier system, explicitly out of scope. **Final decision: leave the message as-is, do not attempt to hide the URL.** Don't re-attempt this without re-confirming scope with the user — it was asked about twice and settled on "leave as is."
 6. **"Mark Received" / "Mark Refunded"**: one-tap buttons in the Settlement tab (`TournamentDetail` component, `section === "settlement"`). `markSettled(b)` auto-creates a `payments` doc for the player's exact outstanding balance (positive amount = received from them, negative = refund paid out — both go through the *same* `payments` collection, tagged with `type: "payment"|"refund"`). No confirmation modal (explicitly chosen — one tap, reversible by deleting the payment in the Payments tab like any other entry).
 
@@ -90,7 +90,58 @@ Live site updates at `https://pakshith33.github.io/tech-titans-tracker` a minute
 - Note found once but not yet addressed: `README.md` is still 100% default CRA boilerplate — nobody has asked for it to be rewritten yet, but it's a candidate if documentation work continues.
 - Sandbox-specific npm quirk (may not apply elsewhere): this particular sandbox's npm registry proxy rejected `firebase-tools` versions published after a certain cutoff date. Had to pin to `^15.24.0` instead of the actual latest (`15.25.1`) to get `npm install` to succeed. If `npm install` fails with `ETARGET ... no matching version ... with a date before ...`, that's this same quirk — check `npm view <pkg> time --json` and pin to something older.
 
-## 8b. "Dues" tab (tournament-wise pending payments / refunds)
+## 8b. Features added 2026-08-07
+
+### Sorting & Filtering Enhancements
+
+1. **Matches sorted by date ascending**: In the Tournament Matches tab and in WhatsApp message match breakdowns, matches are now displayed in chronological order (earliest first).
+
+2. **Player search when adding to match**: The `MatchFormBody` component now has a search bar above the player selection. Players are sorted alphabetically by name. Search filters in real-time.
+
+3. **WhatsApp tab filters**: 
+   - Filter by: All / Due (owes money) / Refund (owed refund)
+   - Sort by: Amount High-to-Low / Low-to-High
+   - Settled players (balance = 0) are automatically hidden — no need to notify them.
+
+4. **Settlement section filters**: Same filter/sort controls as WhatsApp tab, plus a "Settled" filter option to view already-settled players.
+
+5. **Payment section filters**:
+   - Filter by: All / Payment / Refund
+   - Sort by: Amount High-to-Low / Low-to-High
+
+### Clone Functionality
+
+6. **Clone Match**: In the Matches tab, if matches exist, a "Clone from Previous" button appears. User selects an existing match, and a new match form opens with those players pre-selected. User can edit name/date/players before saving.
+
+7. **Clone Tournament**: Each tournament card in the Tournaments tab has a "Clone" button. Creates a new tournament with `{name} (Copy)`, same dates/fee/treasurer, status set to "Upcoming". Does NOT copy matches or payments — only basic metadata.
+
+### Delete Confirmation
+
+8. **Match delete confirmation**: Deleting a match now shows a confirmation modal ("Are you sure you want to delete {match name}?") to prevent accidental deletion.
+
+### Toast & Confetti
+
+9. **Success toasts with confetti**: Key actions show toast messages with a confetti celebration:
+   - Tournament created/updated: `Tournament "{name}" created successfully`
+   - Match added/cloned/updated: `Match "{name}" added/cloned successfully/updated`
+   - Settlement marked: `Marked ₹{amount} received from/refunded to {name}`
+   - Confetti is pure CSS/JS (no external library) — 80 colorful pieces raining down for 2.5s.
+
+### Cricket-Themed UI
+
+10. **Custom cricket SVG icons**: `CricketBat`, `CricketBall`, `CricketStumps`, `CricketHelmet`, `CricketTrophy` — defined in `App.js` near the top.
+
+11. **Enhanced header**: Gradient background, cricket pitch lines decoration, stumps silhouette, cricket ball in corner, bat icon next to "TECH TITANS".
+
+12. **Dashboard stat cards**: Each card has a faded cricket icon (bat for active, trophy for completed, helmet for players, ball for pending).
+
+13. **Bottom navigation**: Tournaments uses `CricketTrophy`, Players uses `CricketHelmet`. Active tab has a dot indicator and subtle background highlight.
+
+14. **Status pills with icons**: "Ongoing" shows cricket ball, "Completed" shows trophy, "Upcoming" shows calendar.
+
+15. **Hover animations**: Cards lift slightly on hover with enhanced shadow. Buttons have lift effect. Navigation items have smooth background transition. All via CSS classes (`ogc-card`, `ogc-btn`, `nav-btn`).
+
+## 8d. "Dues" tab (tournament-wise pending payments / refunds)
 
 A 5th bottom-nav tab, `DuesTab` in `App.js`, added to answer "who still owes money / who's still owed a refund, per tournament" at a glance, without drilling into each tournament's Settlement section one at a time.
 
@@ -114,9 +165,18 @@ From earlier planning rounds, these were discussed and intentionally deferred/sk
 
 ## 10. Quick file map
 
-- [src/App.js](src/App.js) — almost everything: auth, Firestore sync, settlement math, all UI components, the Pay Now page.
+- [src/App.js](src/App.js) — almost everything: auth, Firestore sync, settlement math, all UI components, the Pay Now page, custom cricket SVG icons (`CricketBat`, `CricketBall`, `CricketStumps`, `CricketHelmet`, `CricketTrophy`), and the `Confetti` component.
 - [src/firebase.js](src/firebase.js) — Firebase init only.
 - [src/App.test.js](src/App.test.js) — smoke test.
 - [firestore.rules](firestore.rules) / [firebase.json](firebase.json) / [.firebaserc](.firebaserc) — Firestore security rules + deploy config.
 - [package.json](package.json) — note the `rules:deploy` and `deploy` scripts.
 - [public/index.html](public/index.html) / [public/manifest.json](public/manifest.json) — branding.
+
+## 11. State variables in TournamentDetail
+
+The `TournamentDetail` component has several filter/sort state variables:
+- `waFilter` / `waSort` — WhatsApp tab filters
+- `settlementFilter` / `settlementSort` — Settlement tab filters
+- `paymentFilter` / `paymentSort` — Payments tab filters
+- `showCloneMatchPicker` — modal for selecting match to clone
+- `confirmMatchDelete` — match to confirm deletion for
