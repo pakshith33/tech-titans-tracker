@@ -149,7 +149,7 @@ function computeCentralizedSettlement(t, stats, playersById) {
     const exactAmount = Math.abs(b.balance).toFixed(0);
 
     const matchLines = (b.matches && b.matches.length)
-      ? b.matches.map((m) => `↣ ${m.name} ➤ Match Fee: ${inr(m.perPlayer)}`).join("\n")
+      ? [...b.matches].sort((a, b) => new Date(a.date) - new Date(b.date)).map((m) => `↣ ${m.name} ➤ Match Fee: ${inr(m.perPlayer)}`).join("\n")
       : "(no matches recorded yet)";
 
     const header = `Hi ${player?.name},\n\nYou have played the following match(es) in ${t.name}:\n${matchLines}\n\nTotal Cost For All Matches: ${inr(b.owed)}\nYou have paid a total of: ${inr(b.paid)}\nTotal Amount Due: ${inr(b.balance)}`;
@@ -957,7 +957,7 @@ function TournamentDetail({
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}><Btn onClick={() => setShowMatchForm({})}><Plus size={15} /> Add Match</Btn></div>
           {(tournament.matches || []).length === 0 ? <EmptyState icon={Calendar} title="No matches yet" sub="Add matches as the tournament progresses." /> : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {stats.perMatch.map((m) => (
+              {[...stats.perMatch].sort((a, b) => new Date(a.date) - new Date(b.date)).map((m) => (
                 <Card key={m.id} style={{ padding: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}><div style={{ fontWeight: 700 }}>{m.name}</div><span className="ogc-mono" style={{ fontSize: 12.5 }}>{inr(m.cost)} / match</span></div>
                   <div style={{ fontSize: 12, color: "#8A836E", margin: "3px 0 8px" }}>
@@ -1011,7 +1011,7 @@ function TournamentDetail({
       {/* ⚠️ NEW: WhatsApp Tab with Click-to-Chat functionality */}
       {section === "whatsapp" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {tournament.status !== "Completed" ? <EmptyState icon={MessageCircle} title="Mark tournament as Completed" sub="WhatsApp summaries generate once the tournament is finished." /> : centralizedSettlement.length === 0 ? <EmptyState icon={MessageCircle} title="No player data yet" sub="Add matches and participants first." /> : centralizedSettlement.map((b) => {
+          {tournament.status !== "Completed" ? <EmptyState icon={MessageCircle} title="Mark tournament as Completed" sub="WhatsApp summaries generate once the tournament is finished." /> : centralizedSettlement.length === 0 ? <EmptyState icon={MessageCircle} title="No player data yet" sub="Add matches and participants first." /> : centralizedSettlement.filter((b) => Math.round(b.balance) !== 0).length === 0 ? <EmptyState icon={CheckCircle2} title="Everyone is settled!" sub="No pending payments or refunds to notify." /> : centralizedSettlement.filter((b) => Math.round(b.balance) !== 0).map((b) => {
             return (
               <Card key={b.playerId} style={{ padding: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 6 }}>
@@ -1068,9 +1068,16 @@ function MatchFormBody({ players, firebaseSavePlayer, initial, onSave }) {
   const [additionalAmount, setAdditionalAmount] = useState(initial?.additionalAmount ?? "");
   const [quickAdd, setQuickAdd] = useState(false);
   const [qName, setQName] = useState(""); const [qMobile, setQMobile] = useState("");
+  const [playerSearch, setPlayerSearch] = useState("");
 
   const toggle = (id) => setParticipantIds((ids) => ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]);
   const canSave = name.trim() && date && participantIds.length > 0;
+  
+  const sortedAndFilteredPlayers = useMemo(() => {
+    return [...players]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .filter((p) => p.name.toLowerCase().includes(playerSearch.toLowerCase()));
+  }, [players, playerSearch]);
 
   const addQuickPlayer = async () => {
     if (!qName.trim() || !qMobile.trim()) return;
@@ -1092,10 +1099,16 @@ function MatchFormBody({ players, firebaseSavePlayer, initial, onSave }) {
       <div style={{ fontSize: 12, fontWeight: 700, color: "#6B6552", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>
         Participants ({participantIds.length} selected)
       </div>
+      <div style={{ position: "relative", marginBottom: 8 }}>
+        <Search size={15} style={{ position: "absolute", left: 11, top: 10, color: "#9C9680" }} />
+        <input style={{ ...inputStyle, paddingLeft: 32 }} placeholder="Search players by name" value={playerSearch} onChange={(e) => setPlayerSearch(e.target.value)} />
+      </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 220, overflowY: "auto", padding: "4px 2px", marginBottom: 12, border: "1px solid var(--line-soft)", borderRadius: 8 }} className="ogc-scrollbar">
         {players.length === 0 ? (
           <div style={{ padding: 16, color: "#8A836E", fontSize: 13, width: "100%", textAlign: "center" }}>No players yet. Add players or import from Cricheroes.</div>
-        ) : players.map((p) => {
+        ) : sortedAndFilteredPlayers.length === 0 ? (
+          <div style={{ padding: 16, color: "#8A836E", fontSize: 13, width: "100%", textAlign: "center" }}>No players match "{playerSearch}"</div>
+        ) : sortedAndFilteredPlayers.map((p) => {
           const sel = participantIds.includes(p.id);
           return <button key={p.id} onClick={() => toggle(p.id)} type="button" style={{ padding: "6px 12px", borderRadius: 999, border: `1.5px solid ${sel ? "var(--pitch-green)" : "var(--line-soft)"}`, background: sel ? "var(--pitch-green)" : "#fff", color: sel ? "#fff" : "var(--pitch-ink)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{p.name}</button>;
         })}
