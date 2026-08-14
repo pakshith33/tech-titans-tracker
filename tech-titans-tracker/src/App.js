@@ -527,20 +527,43 @@ export default function App() {
           const allowed = await isTeamMember(currentUser.email);
           if (allowed) {
             setUser(currentUser); setAuthError("");
+            // Temporary helper for Cloud Function curl tests (Function-only slice).
+            // Usage in DevTools: await window.__ttGetIdToken()
+            window.__ttGetIdToken = async () => {
+              const u = auth.currentUser;
+              if (!u) throw new Error("Not signed in");
+              return u.getIdToken(true);
+            };
+            window.__ttCopyIdToken = async () => {
+              const token = await window.__ttGetIdToken();
+              await navigator.clipboard.writeText(token);
+              console.log("ID token copied to clipboard (" + token.length + " chars)");
+              return token.slice(0, 12) + "…";
+            };
           } else {
+            delete window.__ttGetIdToken;
+            delete window.__ttCopyIdToken;
             await signOut(auth);
             setAuthError("Access Denied: You are not authorized to view the Tech Titans tracker.");
           }
         } catch (error) {
+          delete window.__ttGetIdToken;
+          delete window.__ttCopyIdToken;
           await signOut(auth);
           setAuthError("Couldn't verify access. Please try signing in again.");
         }
       } else {
+        delete window.__ttGetIdToken;
+        delete window.__ttCopyIdToken;
         setUser(null);
       }
       setAuthChecking(false);
     });
-    return () => unsubscribe();
+    return () => {
+      delete window.__ttGetIdToken;
+      delete window.__ttCopyIdToken;
+      unsubscribe();
+    };
   }, []);
 
   // Firestore Sync - Atomic Root Collections

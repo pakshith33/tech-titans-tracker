@@ -99,15 +99,28 @@ Callable endpoints require a Firebase Auth ID token for a user whose email exist
 
 ### C1. Get an ID token
 
-Easiest: while signed into the live app as an admin, in the browser DevTools console:
+The app uses the **modular** Firebase SDK, so `firebase` is **not** defined in the browser console.
+
+A temporary helper is in `App.js` (after you pull + run local or deploy the frontend):
+
+1. Sign in to the app as an admin.
+2. DevTools → **Console**:
 
 ```js
-// If the app exposes auth on window this may differ; otherwise from Application
-// use the Firebase Auth user from your signed-in session:
-firebase.auth().currentUser.getIdToken(true).then(console.log)
+await window.__ttCopyIdToken()   // copies token to clipboard
+// or:
+await window.__ttGetIdToken()    // prints full token
 ```
 
-If the CRA app does not put `firebase` on `window`, temporarily log the token from `App.js` after sign-in, or use a tiny Node script with a custom token. Ask the agent if you need a one-off token helper.
+**Important:** the live GitHub Pages site will only have this helper after you deploy the frontend once (`npm run deploy`), **or** run locally:
+
+```bash
+cd tech-titans-tracker/tech-titans-tracker
+npm start
+# open http://localhost:3000 → sign in → run the console commands above
+```
+
+Local `npm start` is enough to get a token; you do **not** need gh-pages deploy just to test the Function.
 
 ### C2. Call the function via HTTP (callable protocol)
 
