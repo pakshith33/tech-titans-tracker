@@ -528,12 +528,28 @@ export default function App() {
           if (allowed) {
             setUser(currentUser); setAuthError("");
             // Temporary helper for Cloud Function curl tests (Function-only slice).
-            // Usage in DevTools:
+            // Usage in DevTools (only after you see the main app, not the sign-in screen):
+            //   window.__ttAuthStatus()
             //   await window.__ttGetIdToken()
-            //   await window.__ttCopyIdToken()
+            window.__ttAuthStatus = () => {
+              const u = auth.currentUser;
+              const status = {
+                signedIn: !!u,
+                email: u && u.email,
+                uid: u && u.uid,
+                helpersReady: typeof window.__ttGetIdToken === "function",
+              };
+              console.log("=== TECH TITANS AUTH STATUS ===", status);
+              return status;
+            };
             window.__ttGetIdToken = async () => {
               const u = auth.currentUser;
-              if (!u) throw new Error("Not signed in");
+              if (!u) {
+                console.error(
+                  "Not signed in. Wait until the main tracker UI is visible (not the Google sign-in screen), then run window.__ttAuthStatus() first."
+                );
+                throw new Error("Not signed in");
+              }
               const token = await u.getIdToken(true);
               // Chrome often hides bare await return values — always print it.
               console.log("=== TECH TITANS ID TOKEN (copy everything below) ===");
@@ -551,19 +567,27 @@ export default function App() {
               }
               return token;
             };
+            console.log(
+              "Tech Titans debug helpers ready for",
+              currentUser.email,
+              "— run: await window.__ttGetIdToken()"
+            );
           } else {
+            delete window.__ttAuthStatus;
             delete window.__ttGetIdToken;
             delete window.__ttCopyIdToken;
             await signOut(auth);
             setAuthError("Access Denied: You are not authorized to view the Tech Titans tracker.");
           }
         } catch (error) {
+          delete window.__ttAuthStatus;
           delete window.__ttGetIdToken;
           delete window.__ttCopyIdToken;
           await signOut(auth);
           setAuthError("Couldn't verify access. Please try signing in again.");
         }
       } else {
+        delete window.__ttAuthStatus;
         delete window.__ttGetIdToken;
         delete window.__ttCopyIdToken;
         setUser(null);
@@ -571,6 +595,7 @@ export default function App() {
       setAuthChecking(false);
     });
     return () => {
+      delete window.__ttAuthStatus;
       delete window.__ttGetIdToken;
       delete window.__ttCopyIdToken;
       unsubscribe();
@@ -683,7 +708,39 @@ export default function App() {
             <div style={{ fontSize: 11, opacity: 0.7, fontWeight: 500, marginTop: 2 }}>Logged in as {user.email.split('@')[0]}</div>
           </div>
         </div>
-        <button onClick={() => signOut(auth)} className="ogc-btn" style={{ position: "relative", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}>Sign Out</button>
+        <div style={{ display: "flex", gap: 8, position: "relative" }}>
+          <button
+            type="button"
+            className="ogc-btn"
+            title="Temporary: copy Firebase ID token for Cloud Function curl tests"
+            onClick={async () => {
+              try {
+                const u = auth.currentUser;
+                if (!u) {
+                  showToast("Not signed in — refresh and sign in again", false);
+                  return;
+                }
+                const token = await u.getIdToken(true);
+                try {
+                  await navigator.clipboard.writeText(token);
+                  showToast("Function test token copied to clipboard", false);
+                } catch (_) {
+                  // Fallback: show prompt so user can copy manually
+                  window.prompt("Copy this ID token:", token);
+                  showToast("Token shown in prompt — copy it", false);
+                }
+                console.log("=== TECH TITANS ID TOKEN ===");
+                console.log(token);
+              } catch (e) {
+                showToast("Could not get token: " + (e.message || String(e)), false);
+              }
+            }}
+            style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}
+          >
+            Copy Fn Token
+          </button>
+          <button onClick={() => signOut(auth)} className="ogc-btn" style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}>Sign Out</button>
+        </div>
       </div>
 
       <div style={{ padding: "14px 14px 4px" }}>
