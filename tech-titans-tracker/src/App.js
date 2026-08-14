@@ -528,17 +528,28 @@ export default function App() {
           if (allowed) {
             setUser(currentUser); setAuthError("");
             // Temporary helper for Cloud Function curl tests (Function-only slice).
-            // Usage in DevTools: await window.__ttGetIdToken()
+            // Usage in DevTools:
+            //   await window.__ttGetIdToken()
+            //   await window.__ttCopyIdToken()
             window.__ttGetIdToken = async () => {
               const u = auth.currentUser;
               if (!u) throw new Error("Not signed in");
-              return u.getIdToken(true);
+              const token = await u.getIdToken(true);
+              // Chrome often hides bare await return values — always print it.
+              console.log("=== TECH TITANS ID TOKEN (copy everything below) ===");
+              console.log(token);
+              console.log("=== END TOKEN (" + token.length + " chars) ===");
+              return token;
             };
             window.__ttCopyIdToken = async () => {
               const token = await window.__ttGetIdToken();
-              await navigator.clipboard.writeText(token);
-              console.log("ID token copied to clipboard (" + token.length + " chars)");
-              return token.slice(0, 12) + "…";
+              try {
+                await navigator.clipboard.writeText(token);
+                console.log("Also copied to clipboard.");
+              } catch (e) {
+                console.warn("Clipboard copy failed — select/copy the token from the log above.", e);
+              }
+              return token;
             };
           } else {
             delete window.__ttGetIdToken;
