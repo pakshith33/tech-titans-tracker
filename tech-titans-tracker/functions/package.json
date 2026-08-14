@@ -1,0 +1,19 @@
+{
+  "name": "tech-titans-tracker-functions",
+  "description": "Cloud Functions for Tech Titans Tracker (CricHeroes import)",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test:parse": "node test-local-parse.js",
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0"
+  },
+  "private": true
+}

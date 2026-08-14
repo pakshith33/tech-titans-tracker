@@ -180,3 +180,11 @@ The `TournamentDetail` component has several filter/sort state variables:
 - `paymentFilter` / `paymentSort` — Payments tab filters
 - `showCloneMatchPicker` — modal for selecting match to clone
 - `confirmMatchDelete` — match to confirm deletion for
+
+## 12. CricHeroes import (in progress)
+
+See [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md) and [`FUNCTIONS_SETUP.md`](FUNCTIONS_SETUP.md).
+
+- Callable Cloud Function `parseCricHeroesScorecard` lives under [`functions/`](functions/) (`asia-south1`).
+- App UI for import is **not** built yet (Function-only slice).
+- Deploy Functions separately via `npm run functions:deploy` — not part of `npm run deploy` (gh-pages).

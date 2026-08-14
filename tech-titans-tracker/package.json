@@ -22,7 +22,9 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "rules:deploy": "firebase deploy --only firestore:rules"
+    "rules:deploy": "firebase deploy --only firestore:rules",
+    "functions:deploy": "firebase deploy --only functions",
+    "functions:test:parse": "npm --prefix functions run test:parse"
   },
   "eslintConfig": {
     "extends": [
