@@ -93,15 +93,28 @@ After deploy, Console → **Functions** should show `parseCricHeroesScorecard` i
 
 ---
 
-## C. Smoke-test the callable (after deploy)
+## C. Easiest smoke test (in the app — no curl)
+
+After pulling the latest frontend code and running `npm start` (or deploying gh-pages):
+
+1. Sign in as an admin.
+2. Click **Test CH Import** (top right, next to Sign Out).
+3. Keep/paste a CricHeroes scorecard URL.
+4. Click **Run test**.
+5. You’ll see **SUCCESS** + JSON, or **FAILED** + error JSON (`code`, `message`, `details`).
+6. Click **Copy result** and paste that JSON to the agent if it fails.
+
+This uses your signed-in Firebase session automatically (no ID token / curl).
+
+### C-alt. Curl test (optional)
 
 Callable endpoints require a Firebase Auth ID token for a user whose email exists in `admins/{email}`.
 
-### C1. Get an ID token
+#### Get an ID token (only if you still want curl)
 
 The app uses the **modular** Firebase SDK, so `firebase` is **not** defined in the browser console.
 
-A temporary helper is in `App.js` (after you pull + run local or deploy the frontend):
+Prefer the in-app **Test CH Import** button above. If you still need a raw token:
 
 1. Sign in to the app as an admin.
 2. DevTools → **Console**:
@@ -117,12 +130,12 @@ await window.__ttGetIdToken()    // prints full token
 ```bash
 cd tech-titans-tracker/tech-titans-tracker
 npm start
-# open http://localhost:3000 → sign in → run the console commands above
+# open http://localhost:3000 → sign in → use Test CH Import
 ```
 
-Local `npm start` is enough to get a token; you do **not** need gh-pages deploy just to test the Function.
+Local `npm start` is enough; you do **not** need gh-pages deploy just to test the Function.
 
-### C2. Call the function via HTTP (callable protocol)
+#### Call the function via HTTP (callable protocol)
 
 **Normal call:**
 

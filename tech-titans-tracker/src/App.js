@@ -6,9 +6,10 @@ import {
 } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
-import { auth, provider, db } from "./firebase";
+import { auth, provider, db, functions } from "./firebase";
 import { collection, onSnapshot, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { httpsCallable } from "firebase/functions";
 
 // Access is controlled by Firestore security rules, which only allow a
 // request through when a document exists at admins/{their email}. This
@@ -495,6 +496,7 @@ export default function App() {
   const [openTournamentId, setOpenTournamentId] = useState(null);
   const [toast, setToast] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showCricHeroesTest, setShowCricHeroesTest] = useState(false);
 
   const showToast = useCallback((msg, withConfetti = true) => { 
     setToast(msg); 
@@ -712,36 +714,22 @@ export default function App() {
           <button
             type="button"
             className="ogc-btn"
-            title="Temporary: copy Firebase ID token for Cloud Function curl tests"
-            onClick={async () => {
-              try {
-                const u = auth.currentUser;
-                if (!u) {
-                  showToast("Not signed in — refresh and sign in again", false);
-                  return;
-                }
-                const token = await u.getIdToken(true);
-                try {
-                  await navigator.clipboard.writeText(token);
-                  showToast("Function test token copied to clipboard", false);
-                } catch (_) {
-                  // Fallback: show prompt so user can copy manually
-                  window.prompt("Copy this ID token:", token);
-                  showToast("Token shown in prompt — copy it", false);
-                }
-                console.log("=== TECH TITANS ID TOKEN ===");
-                console.log(token);
-              } catch (e) {
-                showToast("Could not get token: " + (e.message || String(e)), false);
-              }
-            }}
+            title="Temporary: test CricHeroes Cloud Function"
+            onClick={() => setShowCricHeroesTest(true)}
             style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}
           >
-            Copy Fn Token
+            Test CH Import
           </button>
           <button onClick={() => signOut(auth)} className="ogc-btn" style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}>Sign Out</button>
         </div>
       </div>
+
+      {showCricHeroesTest && (
+        <CricHeroesFunctionTestModal
+          onClose={() => setShowCricHeroesTest(false)}
+          showToast={showToast}
+        />
+      )}
 
       <div style={{ padding: "14px 14px 4px" }}>
         {openTournament ? (
@@ -948,6 +936,108 @@ function DuesTab({ tournaments, playersById, onOpenTournament }) {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/** Temporary in-app tester for parseCricHeroesScorecard (no curl needed). */
+function CricHeroesFunctionTestModal({ onClose, showToast }) {
+  const [url, setUrl] = useState(
+    "https://cricheroes.com/scorecard/26150403/rising-cup-season-54-saturday/hawks-vs-tech-titans/scorecard"
+  );
+  const [busy, setBusy] = useState(false);
+  const [resultText, setResultText] = useState("");
+  const [ok, setOk] = useState(null);
+
+  const runTest = async () => {
+    setBusy(true);
+    setOk(null);
+    setResultText("Calling Cloud Function…");
+    try {
+      const callable = httpsCallable(functions, "parseCricHeroesScorecard");
+      const res = await callable({ url: url.trim(), debug: true });
+      setOk(true);
+      setResultText(JSON.stringify(res.data, null, 2));
+      showToast("CricHeroes function OK", false);
+    } catch (err) {
+      setOk(false);
+      const payload = {
+        code: err.code || null,
+        message: err.message || String(err),
+        details: err.details || null,
+      };
+      setResultText(JSON.stringify(payload, null, 2));
+      showToast("CricHeroes function failed — copy the JSON below", false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copyResult = async () => {
+    try {
+      await navigator.clipboard.writeText(resultText);
+      showToast("Result copied — paste it to the agent", false);
+    } catch (_) {
+      window.prompt("Copy this result:", resultText);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000,
+        display: "flex", alignItems: "flex-end", justifyContent: "center",
+      }}
+      onClick={onClose}
+    >
+      <div
+        className="ogc-card"
+        style={{
+          width: "100%", maxWidth: 480, maxHeight: "88vh", overflow: "auto",
+          background: "#fff", borderRadius: "16px 16px 0 0", padding: 16,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>Test CricHeroes Function</div>
+          <button type="button" onClick={onClose} style={{ border: "none", background: "transparent", cursor: "pointer" }}><X size={18} /></button>
+        </div>
+        <p style={{ fontSize: 12.5, color: "#6B6552", marginBottom: 10, lineHeight: 1.4 }}>
+          Uses your signed-in session (no curl / token). Paste a scorecard URL and run. If it fails, copy the JSON and send it to the agent.
+        </p>
+        <label style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 4 }}>Scorecard URL</label>
+        <textarea
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          rows={3}
+          style={{ width: "100%", fontSize: 12, padding: 8, borderRadius: 8, border: "1px solid #D8D3C4", resize: "vertical", marginBottom: 10 }}
+        />
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <Btn onClick={runTest} disabled={busy || !url.trim()}>
+            {busy ? "Running…" : "Run test"}
+          </Btn>
+          {resultText && (
+            <Btn variant="ghost" onClick={copyResult}>Copy result</Btn>
+          )}
+        </div>
+        {ok !== null && (
+          <div style={{
+            fontSize: 12, fontWeight: 700, marginBottom: 6,
+            color: ok ? "#166534" : "#B91C1C",
+          }}>
+            {ok ? "SUCCESS" : "FAILED"}
+          </div>
+        )}
+        {resultText && (
+          <pre style={{
+            margin: 0, padding: 10, background: "#F4F5F7", borderRadius: 8,
+            fontSize: 11, overflow: "auto", maxHeight: 320, whiteSpace: "pre-wrap",
+            wordBreak: "break-word", fontFamily: "IBM Plex Mono, monospace",
+          }}>
+            {resultText}
+          </pre>
+        )}
+      </div>
     </div>
   );
 }
