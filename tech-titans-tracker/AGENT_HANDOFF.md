@@ -183,8 +183,8 @@ The `TournamentDetail` component has several filter/sort state variables:
 
 ## 12. CricHeroes import (in progress)
 
-See [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md) and [`FUNCTIONS_SETUP.md`](FUNCTIONS_SETUP.md).
+See [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md).
 
-- Callable Cloud Function `parseCricHeroesScorecard` lives under [`functions/`](functions/) (`asia-south1`).
-- App UI for import is **not** built yet (Function-only slice).
-- Deploy Functions separately via `npm run functions:deploy` — not part of `npm run deploy` (gh-pages).
+- **Current path:** upload saved scorecard `.html` → client parse → **Import Preview** UI (header button).
+- Cloud Function remains deployed but is **unused** (CricHeroes returns 403 to GCP fetches).
+- Next (after preview OK): team pick, fuzzy map, bill selection, create match. Product questions parked in handoff.

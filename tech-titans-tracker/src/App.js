@@ -6,10 +6,10 @@ import {
 } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
-import { auth, provider, db, functions } from "./firebase";
+import { auth, provider, db } from "./firebase";
 import { collection, onSnapshot, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { httpsCallable } from "firebase/functions";
+import { parseScorecardHtml } from "./parseCricHeroesScorecard";
 
 // Access is controlled by Firestore security rules, which only allow a
 // request through when a document exists at admins/{their email}. This
@@ -714,18 +714,18 @@ export default function App() {
           <button
             type="button"
             className="ogc-btn"
-            title="Temporary: test CricHeroes Cloud Function"
+            title="Preview CricHeroes scorecard from a saved HTML file"
             onClick={() => setShowCricHeroesTest(true)}
             style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}
           >
-            Test CH Import
+            Import Preview
           </button>
           <button onClick={() => signOut(auth)} className="ogc-btn" style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}>Sign Out</button>
         </div>
       </div>
 
       {showCricHeroesTest && (
-        <CricHeroesFunctionTestModal
+        <CricHeroesUploadPreviewModal
           onClose={() => setShowCricHeroesTest(false)}
           showToast={showToast}
         />
@@ -940,45 +940,59 @@ function DuesTab({ tournaments, playersById, onOpenTournament }) {
   );
 }
 
-/** Temporary in-app tester for parseCricHeroesScorecard (no curl needed). */
-function CricHeroesFunctionTestModal({ onClose, showToast }) {
-  const [url, setUrl] = useState(
-    "https://cricheroes.com/scorecard/26150403/rising-cup-season-54-saturday/hawks-vs-tech-titans/scorecard"
-  );
+/** Upload saved CricHeroes scorecard HTML and preview parsed match/teams/players. */
+function CricHeroesUploadPreviewModal({ onClose, showToast }) {
+  const [fileName, setFileName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [resultText, setResultText] = useState("");
-  const [ok, setOk] = useState(null);
+  const [error, setError] = useState("");
+  const [parsed, setParsed] = useState(null);
 
-  const runTest = async () => {
+  const onFileChange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const lower = file.name.toLowerCase();
+    if (!lower.endsWith(".html") && !lower.endsWith(".htm")) {
+      setError("Please upload a .html or .htm file (Save Page As from CricHeroes).");
+      setParsed(null);
+      setFileName("");
+      return;
+    }
+
     setBusy(true);
-    setOk(null);
-    setResultText("Calling Cloud Function…");
+    setError("");
+    setParsed(null);
+    setFileName(file.name);
+
     try {
-      const callable = httpsCallable(functions, "parseCricHeroesScorecard");
-      const res = await callable({ url: url.trim(), debug: true });
-      setOk(true);
-      setResultText(JSON.stringify(res.data, null, 2));
-      showToast("CricHeroes function OK", false);
+      const html = await file.text();
+      if (!html || html.trim().length < 200) {
+        throw new Error("File looks empty or too small to be a scorecard.");
+      }
+      if (/cloudflare|attention required|access denied/i.test(html) && html.length < 20000) {
+        // Soft warning only — real scorecards are much larger
+      }
+      const result = parseScorecardHtml(html, { fileName: file.name });
+      if (!result.matchName || !result.date || !result.teams || result.teams.length < 2) {
+        throw new Error(
+          "Could not find match name, date, and both teams. Make sure you saved the full CricHeroes scorecard page (Webpage, Complete or HTML only)."
+        );
+      }
+      const emptyTeam = result.teams.find((t) => !t.players || t.players.length === 0);
+      if (emptyTeam) {
+        throw new Error(
+          `Parsed teams but "${emptyTeam.name}" has 0 players. Try re-saving the scorecard HTML from CricHeroes.`
+        );
+      }
+      setParsed(result);
+      showToast("Scorecard parsed — preview below", false);
     } catch (err) {
-      setOk(false);
-      const payload = {
-        code: err.code || null,
-        message: err.message || String(err),
-        details: err.details || null,
-      };
-      setResultText(JSON.stringify(payload, null, 2));
-      showToast("CricHeroes function failed — copy the JSON below", false);
+      setParsed(null);
+      setError(err.message || String(err));
+      showToast("Could not parse that HTML file", false);
     } finally {
       setBusy(false);
-    }
-  };
-
-  const copyResult = async () => {
-    try {
-      await navigator.clipboard.writeText(resultText);
-      showToast("Result copied — paste it to the agent", false);
-    } catch (_) {
-      window.prompt("Copy this result:", resultText);
     }
   };
 
@@ -999,43 +1013,86 @@ function CricHeroesFunctionTestModal({ onClose, showToast }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <div style={{ fontWeight: 800, fontSize: 16 }}>Test CricHeroes Function</div>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>Import preview</div>
           <button type="button" onClick={onClose} style={{ border: "none", background: "transparent", cursor: "pointer" }}><X size={18} /></button>
         </div>
-        <p style={{ fontSize: 12.5, color: "#6B6552", marginBottom: 10, lineHeight: 1.4 }}>
-          Uses your signed-in session (no curl / token). Paste a scorecard URL and run. If it fails, copy the JSON and send it to the agent.
+        <p style={{ fontSize: 12.5, color: "#6B6552", marginBottom: 12, lineHeight: 1.45 }}>
+          On CricHeroes scorecard: <strong>File → Save Page As…</strong> (HTML). Then upload that file here.
+          This step only previews parsed data — creating a match comes later.
         </p>
-        <label style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 4 }}>Scorecard URL</label>
-        <textarea
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          rows={3}
-          style={{ width: "100%", fontSize: 12, padding: 8, borderRadius: 8, border: "1px solid #D8D3C4", resize: "vertical", marginBottom: 10 }}
-        />
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <Btn onClick={runTest} disabled={busy || !url.trim()}>
-            {busy ? "Running…" : "Run test"}
-          </Btn>
-          {resultText && (
-            <Btn variant="ghost" onClick={copyResult}>Copy result</Btn>
-          )}
-        </div>
-        {ok !== null && (
+
+        <label
+          style={{
+            display: "block", border: "1px dashed #C9C3B2", borderRadius: 10,
+            padding: "14px 12px", textAlign: "center", cursor: busy ? "wait" : "pointer",
+            background: "#FAFAF7", marginBottom: 12,
+          }}
+        >
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
+            {busy ? "Reading file…" : "Upload .html scorecard"}
+          </div>
+          <div style={{ fontSize: 11.5, color: "#8A836E" }}>
+            {fileName || "Choose a .html / .htm file"}
+          </div>
+          <input
+            type="file"
+            accept=".html,.htm,text/html"
+            disabled={busy}
+            onChange={onFileChange}
+            style={{ display: "none" }}
+          />
+        </label>
+
+        {error && (
           <div style={{
-            fontSize: 12, fontWeight: 700, marginBottom: 6,
-            color: ok ? "#166534" : "#B91C1C",
+            background: "#FEF2F2", color: "#991B1B", borderRadius: 8,
+            padding: "10px 12px", fontSize: 12.5, marginBottom: 12, lineHeight: 1.4,
           }}>
-            {ok ? "SUCCESS" : "FAILED"}
+            {error}
           </div>
         )}
-        {resultText && (
-          <pre style={{
-            margin: 0, padding: 10, background: "#F4F5F7", borderRadius: 8,
-            fontSize: 11, overflow: "auto", maxHeight: 320, whiteSpace: "pre-wrap",
-            wordBreak: "break-word", fontFamily: "IBM Plex Mono, monospace",
-          }}>
-            {resultText}
-          </pre>
+
+        {parsed && (
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#166534", marginBottom: 8 }}>PREVIEW</div>
+            <div className="ogc-card" style={{ padding: 12, marginBottom: 10, background: "#F4F5F7", boxShadow: "none" }}>
+              <div style={{ fontWeight: 800, fontSize: 15 }}>{parsed.matchName}</div>
+              <div style={{ fontSize: 12, color: "#6B6552", marginTop: 4 }}>
+                Date: {parsed.date}
+                {parsed.matchId ? ` · Match ID: ${parsed.matchId}` : ""}
+              </div>
+              {parsed.fileName && (
+                <div style={{ fontSize: 11, color: "#8A836E", marginTop: 2 }}>File: {parsed.fileName}</div>
+              )}
+            </div>
+
+            {parsed.teams.map((team) => (
+              <div key={team.name} style={{ marginBottom: 12 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>
+                  {team.name}{" "}
+                  <span style={{ color: "#8A836E", fontWeight: 600 }}>({team.players.length} players)</span>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {team.players.map((p) => (
+                    <span
+                      key={`${team.name}-${p.name}-${p.cricheroesPlayerId || ""}`}
+                      style={{
+                        fontSize: 11.5, background: "#EDEBE3", padding: "4px 8px",
+                        borderRadius: 999,
+                      }}
+                      title={p.cricheroesPlayerId ? `CricHeroes #${p.cricheroesPlayerId}` : "No CricHeroes id found"}
+                    >
+                      {p.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <p style={{ fontSize: 11.5, color: "#8A836E", marginTop: 4, lineHeight: 1.4 }}>
+              If this looks right, we’re ready for the next step (team pick, player mapping, create match) after you confirm.
+            </p>
+          </div>
         )}
       </div>
     </div>

@@ -2,44 +2,40 @@
 
 Parked notes so a new agent (or a later session) can continue without re-deriving decisions from chat.
 
-Last updated: 2026-08-14 (Function-only slice implemented; Blaze/deploy by user on another machine).
+Last updated: 2026-08-18 (Option 1: HTML upload + client preview; URL fetch abandoned due to 403).
 
 ## Goal
 
-Reduce manual match entry by letting an admin paste a CricHeroes scorecard URL, preview/parse match + player data, map players to existing app players (or create new), pick who to bill, then create a match in the current Tech Titans Tracker app.
+Reduce manual match entry by importing CricHeroes scorecard data, previewing match/players, then (later) mapping players and creating a match.
+
+**Current input method:** upload a saved CricHeroes scorecard **`.html` file** (not live URL fetch).
 
 ## Implementation status
 
-### Done (Function only)
+### Done
 
-- [`functions/`](functions/) — Callable `parseCricHeroesScorecard` in **`asia-south1`**
-  - Auth required + `admins/{email}` gate
-  - Fetches scorecard URL, parses HTML, returns agreed JSON shape
-  - **Debug support:** pass `"debug": true`; failures return `error.details.debug` with `stage`/`reason`. See [`FUNCTIONS_SETUP.md`](FUNCTIONS_SETUP.md) §C3.
-  - Local smoke test: `npm --prefix functions run test:parse` (uses `Sample Scorecard.html`)
-- **Deploy safety:** `firebase deploy --only functions` does **not** modify Firestore `admins` or other data.
-- [`firebase.json`](firebase.json) — functions codebase wired
-- Setup/deploy steps for the other computer: [`FUNCTIONS_SETUP.md`](FUNCTIONS_SETUP.md)
+- Cloud Function `parseCricHeroesScorecard` deployed in **`asia-south1`** (left deployed per user; **not used** by the upload path).
+  - Live URL fetch from GCP returns **HTTP 403** from CricHeroes — confirmed.
+- Browser parser: [`src/parseCricHeroesScorecard.js`](src/parseCricHeroesScorecard.js)
+- App UI: header **Import Preview** → upload `.html` / `.htm` → show match name, date, both teams + players.
+- Function local parser still under [`functions/parseScorecard.js`](functions/parseScorecard.js); setup notes in [`FUNCTIONS_SETUP.md`](FUNCTIONS_SETUP.md).
 
-### Not done yet
+### Not done yet (parked until preview is confirmed good)
 
-- App UI (paste URL, team pick, fuzzy map, bill checkboxes, create match)
-- Production verification that CricHeroes allows fetches from GCP (`asia-south1`)
-
-User deploys from **another computer** after pushing to GitHub (this Cursor sandbox may not write `.git`).
+- Team pick, fuzzy map / create player, billing checkboxes, create match in a tournament
+- Product questions listed below (user asked to park until preview looks right)
 
 ## Confirmed product decisions (do not re-litigate unless user changes them)
 
-1. **Input:** Paste CricHeroes scorecard URL (example shape: `https://cricheroes.com/scorecard/{matchId}/.../scorecard`).
-2. **Team selection:** Admin chooses which side is “our” team (e.g. Tech Titans vs Hawks). Opponent is not billed by default; team picker is required.
-3. **Player list:** Show all players from the selected team (from scorecard: batters + “Yet to Bat” / equivalent). Admin decides whom to bill.
-4. **Billing:** Admin explicitly selects who is billed (no automatic “bill everyone”).
-5. **Player matching:** Fuzzy-match CricHeroes names against existing `players` in our app. Then a **manual map step** where admin can:
-   - map to an existing player, or
-   - treat as a new player and create one.
-6. **Match name:** Use form like `Hawks vs Tech Titans` (as shown on CricHeroes).
-7. **Date:** Match date only (ignore time). Example from sample: `18/07/2026` → store as app date field accordingly.
-8. **Teams tab:** Not required for v1 (scorecard HTML is enough).
+1. **Input (updated):** Upload saved CricHeroes scorecard **HTML file**. Live URL paste via Cloud Function is blocked (403).
+2. **Team selection:** Admin chooses which side is “our” team (later step).
+3. **Player list:** Show all players from the selected team (batters + Yet to Bat). Admin decides whom to bill (later).
+4. **Billing:** Admin explicitly selects who is billed (later).
+5. **Player matching:** Fuzzy-match + manual map / create new (later).
+6. **Match name:** Form like `Hawks vs Tech Titans`.
+7. **Date:** Match date only (ignore time).
+8. **Teams tab:** Not required for v1.
+9. **Cloud Function:** Leave deployed for now; unused by upload+preview path.
 
 ## Sample artifacts already in repo (for parser design)
 
@@ -147,7 +143,9 @@ Teammates who never sign in to the app are not callable clients for the Function
 - Set Google Cloud budget alert at **$1**.
 - Optionally periodically clean unused Artifact Registry images (only if charges appear).
 
-### Still-open product questions (parked — needed before app UI, not for Function deploy)
+### Still-open product questions (PARKED — discuss after preview is confirmed)
+
+User explicitly parked these until HTML upload preview looks good:
 
 1. Import entry point: only from the **currently open tournament’s Matches tab**, or also elsewhere?
 2. After mapping, billing checkboxes default: **all selected** or **none selected**?
@@ -156,11 +154,10 @@ Teammates who never sign in to the app are not callable clients for the Function
 5. Re-import of same CricHeroes match: **allow duplicate**, **warn**, or **block**?
 6. Auto-select team named **“Tech Titans”** when present (still changeable), or always force manual team pick?
 
-### After user deploys Function
+### After user tries upload preview
 
-1. Did Blaze + $1 budget alert succeed?
-2. Did `npm run functions:deploy` succeed?
-3. Did the live curl/callable test return parsed teams, or did CricHeroes block the fetch?
+1. Does preview show correct match name, date, and both team player lists?
+2. Ready to un-park questions and build map/create-match flow?
 
 ## Suggested import UX (draft only — not approved)
 

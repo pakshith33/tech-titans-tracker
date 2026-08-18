@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDt_hM9ShCj29JQt7NZkMn7Bz2J2vRobaY",
@@ -17,5 +16,3 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const provider = new GoogleAuthProvider();
 export const db = getFirestore(app);
-// Callable Functions region must match deploy (asia-south1)
-export const functions = getFunctions(app, "asia-south1");
