@@ -1,178 +1,155 @@
-# CricHeroes Match Import — Feature Handoff
+# CricHeroes Match Import — Agent Handoff
 
-Parked notes so a new agent (or a later session) can continue without re-deriving decisions from chat.
+Fresh agents: read this + [`AGENT_HANDOFF.md`](AGENT_HANDOFF.md). Do **not** re-litigate decisions below unless the user changes them.
 
-Last updated: 2026-08-18 (Option 1: HTML upload + client preview; URL fetch abandoned due to 403).
+**Last updated:** 2026-08-18.
 
-## Goal
+---
 
-Reduce manual match entry by importing CricHeroes scorecard data, previewing match/players, then (later) mapping players and creating a match.
+## 1. Goal
 
-**Current input method:** upload a saved CricHeroes scorecard **`.html` file** (not live URL fetch).
+Import a CricHeroes scorecard into a Tech Titans Tracker tournament match with minimal manual player entry: upload saved HTML → confirm team → map players (remembered) → choose who to bill → create match.
 
-## Implementation status
+---
 
-### Done
+## 2. Current status: **implemented (needs user deploy/test)**
 
-- Cloud Function `parseCricHeroesScorecard` deployed in **`asia-south1`** (left deployed per user; **not used** by the upload path).
-  - Live URL fetch from GCP returns **HTTP 403** from CricHeroes — confirmed.
-- Browser parser: [`src/parseCricHeroesScorecard.js`](src/parseCricHeroesScorecard.js)
-- App UI: header **Import Preview** → upload `.html` / `.htm` → show match name, date, both teams + players.
-- Function local parser still under [`functions/parseScorecard.js`](functions/parseScorecard.js); setup notes in [`FUNCTIONS_SETUP.md`](FUNCTIONS_SETUP.md).
+| Piece | Status |
+|---|---|
+| HTML upload + client parser | Done |
+| Matches-tab full wizard | Done |
+| Header “Import Preview” (parse-only) | Kept |
+| `cricheroesPlayerMaps` + rules | Code done — user must `npm run rules:deploy` |
+| Frontend on gh-pages | User runs `npm run deploy` |
+| Live URL fetch via Cloud Function | **Abandoned** — CricHeroes returns **HTTP 403** from GCP |
+| Cloud Function `parseCricHeroesScorecard` | Still **deployed** (user choice); **unused** by current UI |
 
-### Not done yet (parked until preview is confirmed good)
+### User deploy checklist (other computer)
 
-- Team pick, fuzzy map / create player, billing checkboxes, create match in a tournament
-- Product questions listed below (user asked to park until preview looks right)
+```bash
+cd tech-titans-tracker/tech-titans-tracker
+npm install
+npm run rules:deploy    # required for cricheroesPlayerMaps
+npm run deploy          # CRA build + gh-pages
+```
 
-## Confirmed product decisions (do not re-litigate unless user changes them)
+Live: `https://pakshith33.github.io/tech-titans-tracker`
 
-1. **Input (updated):** Upload saved CricHeroes scorecard **HTML file**. Live URL paste via Cloud Function is blocked (403).
-2. **Team selection:** Admin chooses which side is “our” team (later step).
-3. **Player list:** Show all players from the selected team (batters + Yet to Bat). Admin decides whom to bill (later).
-4. **Billing:** Admin explicitly selects who is billed (later).
-5. **Player matching:** Fuzzy-match + manual map / create new (later).
-6. **Match name:** Form like `Hawks vs Tech Titans`.
-7. **Date:** Match date only (ignore time).
-8. **Teams tab:** Not required for v1.
-9. **Cloud Function:** Leave deployed for now; unused by upload+preview path.
+---
 
-## Sample artifacts already in repo (for parser design)
+## 3. How to use (product)
 
-- Screenshot of scorecard UI (shared in chat; also under Cursor assets).
-- [`Sample Scorecard.html`](Sample%20Scorecard.html) — saved “Webpage, Complete” HTML of:
-  `https://cricheroes.com/scorecard/26150403/rising-cup-season-54-saturday/hawks-vs-tech-titans/scorecard`
-- Related saved assets may exist under `Sample Scorecard_files/` (page dependencies; parser should prefer the main HTML).
+1. Open a tournament → **Matches**.
+2. Click **Import CricHeroes**.
+3. On CricHeroes scorecard: **File → Save Page As…** (HTML).
+4. Wizard steps:
+   1. **Upload** `.html` / `.htm`
+   2. **Team** — auto-selects “Tech Titans” when present; admin confirms
+   3. **Map** — fuzzy + saved maps; edit; new player (name + **required** mobile); Activate inactive; click **Save mappings**
+   4. **Bill** — all selected by default; optional additional ₹; **Create match**
+5. Header **Import Preview** still exists for parse-only checks (no create).
 
-### What the sample HTML proved
+---
 
-- Page is a **Next.js** app (`next.cricheroes.com`).
-- Useful match fields are present in the saved DOM (not an empty shell): tournament name, venue, date, both team innings, batters, bowlers, **Yet to Bat**.
-- Player profile links exist (`/player-profile/{id}/{slug}/matches`).
-- No clean official public API found in the saved page.
-- Direct fetch from this Cursor sandbox to `cricheroes.com` was blocked (403/timeout). Local user-saved HTML worked for analysis.
-- Browser-side fetch from our GitHub Pages origin will almost certainly fail CORS / bot protection — **a backend (or equivalent) is required for “paste URL”**.
+## 4. Confirmed decisions (do not re-ask unless user wants change)
 
-### Tech Titans players extracted from sample (batters + Yet to Bat)
+1. **Input:** upload saved scorecard HTML — **not** live URL (403 from Cloud Functions).
+2. **Entry:** tournament **Matches** tab; keep header Import Preview for now.
+3. **Team:** auto-select Tech Titans when present; admin must confirm.
+4. **Players shown:** batters + “Yet to Bat” for selected team.
+5. **Mapping:** fuzzy match + durable Firestore maps; always show mapping UI; admin can edit and **Save** (overwrites prior map).
+6. **Map key:** prefer stable **CricHeroes player id**; else normalized **name**.
+7. **New player:** name + **required** mobile; `active: true`.
+8. **Player list for mapping:** **all** players including inactive; show “(inactive)” + **Activate** button.
+9. **Inactive + billed:** **block** create until admin activates.
+10. **Billing default:** all selected; admin can uncheck.
+11. **Additional amount:** manual field on bill step.
+12. **Duplicate `cricheroesMatchId`:** **block** app-wide; show tournament name, match name, date; admin must delete older match first.
+13. **Create:** on confirm → write match + toast; close wizard.
+14. **Cloud Function:** leave deployed; not used by HTML path.
+15. **UI:** wizard uses a colorful step rail (upload/team/map/bill).
 
-Harindra Reddy Lingannagari, Kushal, Sridhar Dwadasi, Kiran Ram, Ajay, Rakesh Das Salesforce, Vikas Deep Banna, Shekar MS, Satvik Reddy, Akshith, Syam Kumar Ananthasetty, Rajesh Askani.
+---
 
-Note: that list had **12** names on this card — billing selection is intentionally left to admin.
+## 5. Data model additions
 
-Name quirks to handle in matching: role suffixes `(c)` / `(wk)`, casing variants (`Shekar Ms` vs `Shekar MS`).
+### `cricheroesPlayerMaps/{id}`
 
-## App context (existing)
+- Doc id: `id_{cricheroesPlayerId}` **or** `name_{normalized_name_with_underscores}`
+- Fields: `{ id, playerId, cricheroesPlayerId, cricheroesName, updatedAt }`
+- Synced in `App.js` via `onSnapshot`
+- Helpers: [`src/cricheroesFuzzy.js`](src/cricheroesFuzzy.js) (`mappingDocId`, `resolveStoredMapping`, `bestFuzzyPlayer`, …)
+- Rules: [`firestore.rules`](firestore.rules) — `allow read, write: if isAllowed()`
 
-- Single-file CRA app: mostly [`src/App.js`](src/App.js).
-- Hosted on GitHub Pages; Firebase Auth + Firestore.
-- Match shape: `{ id, tournamentId, name, date, participantIds: [], additionalAmount }`.
-- Players: `{ id, name, mobile, upiId?, active }`.
-- Settlement uses `participantIds` only (not cricket stats).
-- Broader project notes: [`AGENT_HANDOFF.md`](AGENT_HANDOFF.md).
+### `matches` extra field
 
-## Current blocker (in progress)
+- `cricheroesMatchId` (string, optional) — set on import when parse finds match id
+- Uniqueness enforced in UI across **all** matches in the app
 
-**Paste URL requires a server-side fetch/parse step.**  
-No Cloud Functions (or other backend) exist in this repo yet (`package.json` has Firestore rules deploy + gh-pages only).
+### Existing shapes (unchanged)
 
-Do **not** implement a provider until the user picks one.
+- Match: `{ id, tournamentId, name, date, participantIds, additionalAmount, cricheroesMatchId? }`
+- Player: `{ id, name, mobile, upiId?, active }`
 
-### Backend preference answers from user (2026-08-14)
+---
 
-1. **OK to put a credit card** on pay-as-you-go, but wants clear pricing first (not “charged per import” confusion).
-2. **Provider not chosen yet** — wants more detail before deciding Firebase vs Cloudflare/other.
-3. **Volume:** about **4–5 imports per month**.
-4. **v1 input:** paste URL; user will test and is willing to revert the feature if it does not work.
+## 6. Key files
 
-### Pricing notes captured for decision (verify on vendor pages if stale)
+| File | Role |
+|---|---|
+| [`src/CricHeroesImportWizard.js`](src/CricHeroesImportWizard.js) | Full import wizard UI |
+| [`src/parseCricHeroesScorecard.js`](src/parseCricHeroesScorecard.js) | Browser HTML → `{ matchId, matchName, date, teams[] }` |
+| [`src/cricheroesFuzzy.js`](src/cricheroesFuzzy.js) | Fuzzy rank + map keys + stored map lookup |
+| [`src/App.js`](src/App.js) | Wires wizard in Matches tab; maps sync; header Import Preview modal; `firebaseSaveCricheroesMaps` |
+| [`firestore.rules`](firestore.rules) | Includes `cricheroesPlayerMaps` |
+| [`Sample Scorecard.html`](Sample%20Scorecard.html) | Fixture for parser tests |
+| [`functions/`](functions/) | Callable URL fetch+parse — **unused** after 403; see [`FUNCTIONS_SETUP.md`](FUNCTIONS_SETUP.md) |
 
-**Firebase Cloud Functions (Blaze required for Functions):**
-- Not billed as a flat “per import product fee.” Billed on invocations + compute + egress after free quotas.
-- Typical free monthly quotas on Blaze (as of docs checked 2026-08-14): **2M invocations**, **400K GB-sec**, **200K CPU-sec**, **5 GB outbound networking**.
-- At 4–5 imports/month, invocation/compute/egress for this feature alone should stay **~$0**.
-- Caveats: card required; **deployments** can create tiny Artifact Registry / Cloud Build charges; set a **budget alert**; protect the endpoint (auth/rate limit) so outsiders cannot spam it.
+---
 
-**Cloudflare Workers:**
-- Free plan: **100k requests/day**, but **10 ms CPU per request** hard cap.
-- Fetching CricHeroes HTML is mostly waiting on network (often fine), but **parsing ~170KB HTML** may exceed 10 ms CPU → free plan may be insufficient; Paid is **$5/month minimum**.
-- For this workload, Firebase is usually the better “near-$0” fit; Cloudflare free is riskier because of the CPU cap.
+## 7. Parser notes
 
-## Parked questions (ask user again before implementing beyond blocker)
+- Built against saved Next.js scorecard DOM (not an official API).
+- Players per team = batting card names (duplicated-name pattern) + **Yet to Bat** (same line or next line).
+- Strips `(c)` / `(wk)` for display/mapping names.
+- Local check: `node --input-type=module` importing `src/parseCricHeroesScorecard.js` against `Sample Scorecard.html`, or `npm --prefix functions run test:parse` for the functions copy.
+- Sample match: Hawks vs Tech Titans, date `2026-07-18`, match id `26150403`, 12 players per side.
 
-These were raised after product decisions; user asked to park them:
+---
 
-1. Import entry point: only from the **currently open tournament’s Matches tab**, or also elsewhere?
-2. After mapping, billing checkboxes default: **all selected** or **none selected**?
-3. Creating a **new player** from import: name only for now (mobile empty), `active: true`?
-4. Keep **additional amount** as a manual field on the import confirm step?
-5. Re-import of same CricHeroes match: **allow duplicate**, **warn**, or **block**? (Optionally store `cricheroesMatchId` / URL on the match doc.)
-6. Auto-select team named **“Tech Titans”** when present (still changeable), or always force manual team pick?
+## 8. Cloud Function history (context only)
 
-### Backend decisions from user (2026-08-14, follow-up)
+- Built as callable `parseCricHeroesScorecard` in **`asia-south1`**, Auth + `admins/{email}`.
+- Live test: auth OK, fetch **HTTP 403** (challenge/block HTML ~4.5KB).
+- Product pivoted to **HTML upload + client parse**.
+- Function left deployed per user; do not rely on it for import. Optional later cleanup: delete function to avoid idle Artifact Registry storage.
 
-1. **Provider:** Firebase Cloud Functions.
-2. **Auth gate:** **Yes** — Firebase Auth ID token + `admins/{email}` check.
-3. **Budget alert:** **$1**.
-4. **Deploy:** User will run Blaze upgrade + deploy commands from agent-provided steps.
-5. **Region:** **`asia-south1`**.
-6. **First build slice:** **Function only** (no app UI yet). Test via curl/script after deploy. Full import UI later.
+---
 
-No separate “Functions login.” Same as the app today:
+## 9. Likely next work (only if user asks)
 
-1. Someone with Firebase Console access adds `admins/{exact-email}` docs (one per teammate).
-2. Each teammate opens the app and signs in with **Google** (`signInWithPopup`).
-3. That creates/uses a Firebase Auth user for that Google account.
-4. App + Firestore rules already gate on `admins/{email}` existence.
-5. Import UI (when built) will send that user’s **ID token** to the Cloud Function; Function verifies token + `admins/{email}`.
+- Remove header Import Preview once Matches wizard is trusted.
+- Delete unused Cloud Function / tidy `FUNCTIONS_SETUP.md`.
+- Improve fuzzy matching edge cases / mapping UX polish.
+- Bulk import multiple HTML files.
+- Persist mapping “confidence” or last-used tournament team preference.
+- README still default CRA boilerplate (rewrite only if asked).
 
-Teammates who never sign in to the app are not callable clients for the Function.
+---
 
-### Abuse + redeploy protection plan (confirmed direction)
+## 10. Out of scope unless user asks
 
-**Against public abuse**
-- Require `Authorization: Bearer <Firebase ID token>`.
-- Reject if token invalid/expired.
-- Require `exists(admins/{email})` (same whitelist as Firestore).
-- Optional later: Firebase App Check; simple per-uid rate limit (e.g. N imports/day in Firestore).
-- Do not leave a fully public unauthenticated HTTP endpoint.
-- Budget alert at **$1**.
+- Official CricHeroes API / partnership.
+- Paid proxies to bypass 403 for live URL.
+- Teams-tab HTML.
+- WhatsApp / settlement changes for import.
+- Role-based access beyond `admins` whitelist.
 
-**Against redeploy cost creep**
-- Develop/parse logic locally against `Sample Scorecard.html` / emulator before deploying.
-- Deploy Functions only when backend code changes (not on every frontend `npm run deploy`).
-- Set Google Cloud budget alert at **$1**.
-- Optionally periodically clean unused Artifact Registry images (only if charges appear).
+---
 
-### Still-open product questions (PARKED — discuss after preview is confirmed)
+## 11. Agent working notes
 
-User explicitly parked these until HTML upload preview looks good:
-
-1. Import entry point: only from the **currently open tournament’s Matches tab**, or also elsewhere?
-2. After mapping, billing checkboxes default: **all selected** or **none selected**?
-3. Creating a **new player** from import: name only for now (mobile empty), `active: true`?
-4. Keep **additional amount** as a manual field on the import confirm step?
-5. Re-import of same CricHeroes match: **allow duplicate**, **warn**, or **block**?
-6. Auto-select team named **“Tech Titans”** when present (still changeable), or always force manual team pick?
-
-### After user tries upload preview
-
-1. Does preview show correct match name, date, and both team player lists?
-2. Ready to un-park questions and build map/create-match flow?
-
-## Suggested import UX (draft only — not approved)
-
-1. Matches tab → “Import from CricHeroes”.
-2. Paste URL → backend returns `{ matchName, date, teams: [{ name, players: [...] }] }`.
-3. Admin selects our team.
-4. For each player: fuzzy suggestions + manual map / create new + bill checkbox.
-5. Confirm → create any new players → create match with selected `participantIds`.
-
-Do not build this UI until blocker + parked questions are resolved as needed.
-
-## Out of scope unless user asks
-
-- Bulk tournament import.
-- Using Teams tab HTML.
-- WhatsApp / settlement changes.
-- Official CricHeroes partnership/API.
-- Rewriting README boilerplate (still default CRA).
+- Prefer extending existing patterns in `App.js` / wizard file; keep amounts as whole rupees (`Math.round`) elsewhere in app.
+- Git: repo root may be one level above CRA app; user often deploys/pushes from another machine.
+- Never assume; if a product choice isn’t in §4, ask.
+- After code that touches rules: remind user to run `npm run rules:deploy`.

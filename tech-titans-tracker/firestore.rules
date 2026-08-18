@@ -19,5 +19,7 @@ service cloud.firestore {
     match /tournaments/{id} { allow read, write: if isAllowed(); }
     match /matches/{id}     { allow read, write: if isAllowed(); }
     match /payments/{id}    { allow read, write: if isAllowed(); }
+    // Durable CricHeroes player name/id → app playerId mappings for import.
+    match /cricheroesPlayerMaps/{id} { allow read, write: if isAllowed(); }
   }
 }

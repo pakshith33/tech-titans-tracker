@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Trophy, Users, Wallet, BarChart3, Plus, X, Check, ChevronRight,
   MessageCircle, Download, Trash2, Archive, Search, ArrowLeft, Calendar,
-  IndianRupee, UserPlus, AlertTriangle, CheckCircle2, Copy, ArrowUpDown, Filter
+  IndianRupee, UserPlus, AlertTriangle, CheckCircle2, Copy, ArrowUpDown, Filter, Upload
 } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
@@ -10,6 +10,7 @@ import { auth, provider, db } from "./firebase";
 import { collection, onSnapshot, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { parseScorecardHtml } from "./parseCricHeroesScorecard";
+import CricHeroesImportWizard from "./CricHeroesImportWizard";
 
 // Access is controlled by Firestore security rules, which only allow a
 // request through when a document exists at admins/{their email}. This
@@ -491,6 +492,7 @@ export default function App() {
   const [tournaments, setTournaments] = useState([]);
   const [payments, setPayments] = useState([]);
   const [matches, setMatches] = useState([]);
+  const [cricheroesPlayerMaps, setCricheroesPlayerMaps] = useState([]);
   
   const [tab, setTab] = useState("dashboard");
   const [openTournamentId, setOpenTournamentId] = useState(null);
@@ -619,7 +621,10 @@ export default function App() {
     const unsubMatches = onSnapshot(collection(db, "matches"), (snapshot) => {
       setMatches(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
     });
-    return () => { unsubPlayers(); unsubTournaments(); unsubPayments(); unsubMatches(); };
+    const unsubMaps = onSnapshot(collection(db, "cricheroesPlayerMaps"), (snapshot) => {
+      setCricheroesPlayerMaps(snapshot.docs.map((d) => ({ ...d.data(), id: d.id })));
+    });
+    return () => { unsubPlayers(); unsubTournaments(); unsubPayments(); unsubMatches(); unsubMaps(); };
   }, [user]);
 
   // Database Handlers
@@ -654,6 +659,17 @@ export default function App() {
     await setDoc(doc(db, "matches", id), { ...matchData, id, tournamentId });
   };
   const firebaseDeleteMatch = async (id) => { await deleteDoc(doc(db, "matches", id)); };
+  const firebaseSaveCricheroesMaps = async (docs) => {
+    for (const m of docs) {
+      await setDoc(doc(db, "cricheroesPlayerMaps", m.id), m);
+    }
+  };
+
+  const cricheroesMapsByKey = useMemo(() => {
+    const out = {};
+    cricheroesPlayerMaps.forEach((m) => { out[m.id] = m; });
+    return out;
+  }, [cricheroesPlayerMaps]);
 
   const handleLogin = async () => {
     try { await signInWithPopup(auth, provider); } 
@@ -735,6 +751,9 @@ export default function App() {
         {openTournament ? (
           <TournamentDetail
             tournament={openTournament} players={players} playersById={playersById}
+            allMatches={matches}
+            tournaments={tournaments}
+            cricheroesMapsByKey={cricheroesMapsByKey}
             onBack={() => setOpenTournamentId(null)}
             onUpdate={firebaseSaveTournament}
             onDelete={(id) => { firebaseDeleteTournament(id); setOpenTournamentId(null); showToast("Tournament exported & deleted"); }}
@@ -744,6 +763,7 @@ export default function App() {
             firebaseDeletePayment={firebaseDeletePayment}
             firebaseSaveMatch={firebaseSaveMatch}
             firebaseDeleteMatch={firebaseDeleteMatch}
+            firebaseSaveCricheroesMaps={firebaseSaveCricheroesMaps}
           />
         ) : (
           <>
@@ -1272,12 +1292,15 @@ function PlayerFormBody({ initial, onSave }) {
 }
 
 function TournamentDetail({ 
-  tournament, players, playersById, onBack, onUpdate, onDelete, showToast, 
-  firebaseSavePayment, firebaseDeletePayment, firebaseSaveMatch, firebaseDeleteMatch, firebaseSavePlayer 
+  tournament, players, playersById, allMatches, tournaments, cricheroesMapsByKey,
+  onBack, onUpdate, onDelete, showToast, 
+  firebaseSavePayment, firebaseDeletePayment, firebaseSaveMatch, firebaseDeleteMatch, firebaseSavePlayer,
+  firebaseSaveCricheroesMaps,
 }){
   const [section, setSection] = useState("payments");
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [showMatchForm, setShowMatchForm] = useState(null);
+  const [showCricImport, setShowCricImport] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmMatchDelete, setConfirmMatchDelete] = useState(null);
   const [showCloneMatchPicker, setShowCloneMatchPicker] = useState(false);
@@ -1318,10 +1341,10 @@ function TournamentDetail({
     showToast(amount < 0 ? `Marked ${inr(-amount)} refunded to ${name}` : `Marked ${inr(amount)} received from ${name}`);
   };
   
-  const saveMatch = (data, existingId) => {
+  const saveMatch = async (data, existingId) => {
     const isEdit = !!existingId;
     const isClone = !!showMatchForm?.cloneFrom;
-    firebaseSaveMatch(data, existingId, tournament.id);
+    await firebaseSaveMatch(data, existingId, tournament.id);
     setShowMatchForm(null);
     showToast(isEdit ? `Match "${data.name}" updated` : isClone ? `Match "${data.name}" cloned successfully` : `Match "${data.name}" added`);
   };
@@ -1442,7 +1465,14 @@ function TournamentDetail({
 
       {section === "matches" && (
         <div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 10 }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            <Btn
+              variant="outline"
+              onClick={() => setShowCricImport(true)}
+              style={{ borderColor: "#38BDF8", color: "#0369A1", background: "#F0F9FF" }}
+            >
+              <Upload size={15} /> Import CricHeroes
+            </Btn>
             {(tournament.matches || []).length > 0 && (
               <Btn variant="outline" onClick={() => setShowCloneMatchPicker(true)}><Copy size={15} /> Clone from Previous</Btn>
             )}
@@ -1467,6 +1497,25 @@ function TournamentDetail({
                 </Card>
               ))}
             </div>
+          )}
+          {showCricImport && (
+            <CricHeroesImportWizard
+              tournament={tournament}
+              players={players}
+              playersById={playersById}
+              allMatches={allMatches}
+              tournaments={tournaments}
+              mapsByKey={cricheroesMapsByKey}
+              onSaveMappings={firebaseSaveCricheroesMaps}
+              onSavePlayer={firebaseSavePlayer}
+              onSaveMatch={(data) => saveMatch(data, null)}
+              onClose={() => setShowCricImport(false)}
+              showToast={showToast}
+              Btn={Btn}
+              Field={Field}
+              inputStyle={inputStyle}
+              Modal={Modal}
+            />
           )}
           {showMatchForm && (
             <Modal title={showMatchForm.id ? "Edit Match" : showMatchForm.cloneFrom ? "Clone Match" : "Add Match"} onClose={() => setShowMatchForm(null)}>

@@ -1,6 +1,8 @@
 # CricHeroes Function — Blaze setup & deploy (other computer)
 
-Function-only slice. No app UI yet.
+> **Status (2026-08-18):** The callable was deployed and tested. CricHeroes returns **HTTP 403** to Cloud Functions, so **product import uses HTML upload in the app**, not this Function. The Function remains deployed per user request but is **unused**. For import behavior and next work, see [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md). Keep this doc for Blaze/function ops or if URL fetch is revisited.
+
+Function-only slice (historical). App import UI is separate.
 
 - Project: `tech-titans-expense-tracker`
 - Region: `asia-south1`
