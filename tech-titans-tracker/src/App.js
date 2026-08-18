@@ -1036,10 +1036,24 @@ function CricHeroesUploadPreviewModal({ onClose, showToast }) {
           <div style={{ fontWeight: 800, fontSize: 16 }}>Import preview</div>
           <button type="button" onClick={onClose} style={{ border: "none", background: "transparent", cursor: "pointer" }}><X size={18} /></button>
         </div>
-        <p style={{ fontSize: 12.5, color: "#6B6552", marginBottom: 12, lineHeight: 1.45 }}>
-          On CricHeroes scorecard: <strong>File → Save Page As…</strong> (HTML). Then upload that file here.
+        <p style={{ fontSize: 12.5, color: "#6B6552", marginBottom: 10, lineHeight: 1.45 }}>
+          On CricHeroes: open the match <strong>Scorecard</strong> tab, then <strong>File → Save Page As…</strong> (HTML). Upload that file here.
           This step only previews parsed data — creating a match comes later.
         </p>
+        <div
+          style={{
+            background: "#FFFBEB",
+            border: "1.5px solid #F59E0B",
+            borderRadius: 10,
+            padding: "10px 12px",
+            marginBottom: 12,
+            fontSize: 12.5,
+            color: "#92400E",
+            lineHeight: 1.45,
+          }}
+        >
+          <b>Caution:</b> The saved HTML must be from the <b>Scorecard</b> tab (not Summary, Commentary, Teams, etc.).
+        </div>
 
         <label
           style={{

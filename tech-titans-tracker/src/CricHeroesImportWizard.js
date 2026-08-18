@@ -363,9 +363,30 @@ export default function CricHeroesImportWizard({
 
       {step === "upload" && (
         <div>
-          <p style={{ fontSize: 12.5, color: "#6B6552", marginBottom: 12, lineHeight: 1.45 }}>
-            Save the CricHeroes scorecard as HTML, then upload it. Parsing happens on your device.
+          <p style={{ fontSize: 12.5, color: "#6B6552", marginBottom: 10, lineHeight: 1.45 }}>
+            Save the CricHeroes page as HTML, then upload it. Parsing happens on your device.
           </p>
+          <div
+            style={{
+              background: "#FFFBEB",
+              border: "1.5px solid #F59E0B",
+              borderRadius: 10,
+              padding: "10px 12px",
+              marginBottom: 12,
+              fontSize: 12.5,
+              color: "#92400E",
+              lineHeight: 1.45,
+              display: "flex",
+              gap: 8,
+              alignItems: "flex-start",
+            }}
+          >
+            <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+            <div>
+              <b>Caution:</b> Save the page from the match <b>Scorecard</b> tab only
+              (not Summary, Commentary, Teams, etc.). Use <b>File → Save Page As…</b> (HTML).
+            </div>
+          </div>
           <label
             style={{
               display: "block",
@@ -637,9 +658,25 @@ export default function CricHeroesImportWizard({
 
       {step === "bill" && (
         <div>
-          <p style={{ fontSize: 12.5, color: "#6B6552", marginBottom: 10 }}>
+          <p style={{ fontSize: 12.5, color: "#6B6552", marginBottom: 8 }}>
             Choose who to bill (all selected by default). Inactive billed players must be activated first.
           </p>
+          <div
+            style={{
+              background: "linear-gradient(135deg, #ECFDF5, #D1FAE5)",
+              border: "1.5px solid #34D399",
+              borderRadius: 10,
+              padding: "10px 12px",
+              marginBottom: 10,
+              fontWeight: 800,
+              fontSize: 14,
+              color: "#047857",
+              textAlign: "center",
+            }}
+          >
+            {rowKeys.filter((k) => billSelected[k]).length} of {rowKeys.length} player
+            {rowKeys.filter((k) => billSelected[k]).length === 1 ? "" : "s"} selected for billing
+          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12, maxHeight: 260, overflowY: "auto" }}>
             {teamPlayers.map((ch, idx) => {
               const key = rowKeys[idx];

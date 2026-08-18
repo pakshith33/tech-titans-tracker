@@ -2,7 +2,7 @@
 
 Fresh agents: read this + [`AGENT_HANDOFF.md`](AGENT_HANDOFF.md). Do **not** re-litigate decisions below unless the user changes them.
 
-**Last updated:** 2026-08-18.
+**Last updated:** 2026-08-18 (Scorecard-tab save caution + live billing selection count).
 
 ---
 
@@ -19,6 +19,8 @@ Import a CricHeroes scorecard into a Tech Titans Tracker tournament match with m
 | HTML upload + client parser | Done |
 | Matches-tab full wizard | Done |
 | Header “Import Preview” (parse-only) | Kept |
+| Upload caution: save from **Scorecard** tab | Done (wizard + Import Preview) |
+| Bill step: dynamic “N of M selected” count | Done |
 | `cricheroesPlayerMaps` + rules | Code done — user must `npm run rules:deploy` |
 | Frontend on gh-pages | User runs `npm run deploy` |
 | Live URL fetch via Cloud Function | **Abandoned** — CricHeroes returns **HTTP 403** from GCP |
@@ -41,19 +43,19 @@ Live: `https://pakshith33.github.io/tech-titans-tracker`
 
 1. Open a tournament → **Matches**.
 2. Click **Import CricHeroes**.
-3. On CricHeroes scorecard: **File → Save Page As…** (HTML).
+3. On CricHeroes: open the match → **Scorecard** tab (not Summary / Commentary / Teams / etc.) → **File → Save Page As…** (HTML).
 4. Wizard steps:
-   1. **Upload** `.html` / `.htm`
+   1. **Upload** `.html` / `.htm` — UI shows a **Caution** that the file must be from the **Scorecard** tab
    2. **Team** — auto-selects “Tech Titans” when present; admin confirms
    3. **Map** — fuzzy + saved maps; edit; new player (name + **required** mobile); Activate inactive; click **Save mappings**
-   4. **Bill** — all selected by default; optional additional ₹; **Create match**
-5. Header **Import Preview** still exists for parse-only checks (no create).
+   4. **Bill** — all selected by default; live count **“N of M players selected for billing”**; optional additional ₹; **Create match**
+5. Header **Import Preview** still exists for parse-only checks (same Scorecard-tab caution; no create).
 
 ---
 
 ## 4. Confirmed decisions (do not re-ask unless user wants change)
 
-1. **Input:** upload saved scorecard HTML — **not** live URL (403 from Cloud Functions).
+1. **Input:** upload saved scorecard HTML — **not** live URL (403 from Cloud Functions). Save from the match **Scorecard** tab only (caution shown in UI).
 2. **Entry:** tournament **Matches** tab; keep header Import Preview for now.
 3. **Team:** auto-select Tech Titans when present; admin must confirm.
 4. **Players shown:** batters + “Yet to Bat” for selected team.
@@ -62,7 +64,7 @@ Live: `https://pakshith33.github.io/tech-titans-tracker`
 7. **New player:** name + **required** mobile; `active: true`.
 8. **Player list for mapping:** **all** players including inactive; show “(inactive)” + **Activate** button.
 9. **Inactive + billed:** **block** create until admin activates.
-10. **Billing default:** all selected; admin can uncheck.
+10. **Billing default:** all selected; admin can uncheck; UI shows **dynamic “N of M players selected for billing”** count.
 11. **Additional amount:** manual field on bill step.
 12. **Duplicate `cricheroesMatchId`:** **block** app-wide; show tournament name, match name, date; admin must delete older match first.
 13. **Create:** on confirm → write match + toast; close wizard.

@@ -2,7 +2,7 @@
 
 This file exists so a fresh agent session (or a future you) can pick up this project without re-reading the entire chat history. It captures the current state, the reasoning behind key decisions, and known constraints/gotchas.
 
-Last updated: 2026-08-18. CricHeroes HTML import wizard added (see §12 + [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md)).
+Last updated: 2026-08-18. CricHeroes HTML import wizard added (see §12 + [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md)). Incl. Scorecard-tab save caution + live billing selection count.
 
 ## 1. What this app is
 
@@ -107,6 +107,8 @@ Still present: match/player filters & sorts, clone match/tournament, match delet
 **Read [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md) before changing import.**
 
 - Matches → **Import CricHeroes**: upload HTML → team → map/save → bill → create.
+- **Caution in UI:** saved HTML must be from the match **Scorecard** tab (also on header Import Preview).
+- **Bill step:** shows dynamic **“N of M players selected for billing”** as checkboxes change.
 - `cricheroesPlayerMaps` + `matches.cricheroesMatchId` (UI enforces unique id app-wide).
 - After pull: `npm run rules:deploy` then `npm run deploy`.
 - Cloud Function still deployed, unused.
