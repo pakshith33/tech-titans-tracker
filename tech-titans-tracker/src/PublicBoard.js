@@ -24,9 +24,30 @@ function FontLoader() {
     .ogc-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .ogc-scrollbar::-webkit-scrollbar-thumb { background: var(--line-soft); border-radius: 3px; }
     input { font-family: inherit; }
+    @keyframes tt-ball-spin {
+      from { transform: rotate(0deg) translateY(0); }
+      50% { transform: rotate(180deg) translateY(-6px); }
+      to { transform: rotate(360deg) translateY(0); }
+    }
+    @keyframes tt-pitch-pan {
+      0%, 100% { background-position: 50% 40%; }
+      50% { background-position: 52% 48%; }
+    }
+    .tt-ball-spin { animation: tt-ball-spin 2.8s ease-in-out infinite; }
+    .tt-header-pitch {
+      background-size: cover;
+      background-position: 50% 42%;
+      animation: tt-pitch-pan 12s ease-in-out infinite;
+    }
     `}</style>
   );
 }
+
+const STATUS_META = [
+  { id: "Ongoing", title: "In progress", hint: "Matches underway" },
+  { id: "Upcoming", title: "Upcoming", hint: "Not started yet" },
+  { id: "Completed", title: "Completed", hint: "Finished" },
+];
 
 function paymentStatus(balance) {
   const bal = Math.round(balance);
@@ -176,16 +197,86 @@ export default function PublicBoard() {
     return list;
   }, [playerRows, query, selectedId, statusFilter]);
 
+  const tournamentsByStatus = useMemo(() => {
+    const buckets = { Ongoing: [], Upcoming: [], Completed: [] };
+    tournamentsWithData.forEach((t) => {
+      const key = STATUS_META.some((s) => s.id === t.status) ? t.status : "Upcoming";
+      if (!buckets[key]) buckets[key] = [];
+      buckets[key].push(t);
+    });
+    Object.keys(buckets).forEach((k) => {
+      buckets[k].sort((a, b) => String(b.startDate || "").localeCompare(String(a.startDate || "")));
+    });
+    return buckets;
+  }, [tournamentsWithData]);
+
+  const asset = (name) => `${process.env.PUBLIC_URL || ""}/${name}`;
+
   return (
     <div className="ogc-root" style={{ minHeight: "100vh" }}>
       <FontLoader />
-      <div style={{ background: "linear-gradient(135deg, #1F2937 0%, #374151 100%)", color: "#fff", padding: "22px 20px 28px" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.7, letterSpacing: "0.08em", textTransform: "uppercase" }}>Tech Titans</div>
-          <h1 className="ogc-display" style={{ fontSize: 36, margin: "4px 0 6px" }}>Dues board</h1>
-          <p style={{ margin: 0, fontSize: 13.5, opacity: 0.8, lineHeight: 1.45 }}>
-            Filter by your name to see what you owe or are owed, and every match you played. No login. Amounts only — no phone numbers.
-          </p>
+      <div
+        className="tt-header-pitch"
+        style={{
+          color: "#fff",
+          padding: "22px 20px 24px",
+          position: "relative",
+          backgroundImage: `linear-gradient(160deg, rgba(15,23,42,0.88) 0%, rgba(31,41,55,0.78) 55%, rgba(15,23,42,0.9) 100%), url("${asset("cricket-pitch-header.png")}")`,
+        }}
+      >
+        <div style={{ maxWidth: 720, margin: "0 auto", position: "relative" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.75, letterSpacing: "0.08em", textTransform: "uppercase" }}>Tech Titans</div>
+              <h1 className="ogc-display" style={{ fontSize: 38, margin: "4px 0 8px" }}>Dues board</h1>
+              <p style={{ margin: 0, fontSize: 13.5, opacity: 0.88, lineHeight: 1.45, maxWidth: 420 }}>
+                Filter by your name to see dues, refunds, and matches you played. No login. Names and amounts only.
+              </p>
+            </div>
+            <img
+              className="tt-ball-spin"
+              src={asset("cricket-ball-header.png")}
+              alt=""
+              width={72}
+              height={72}
+              style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", flexShrink: 0, boxShadow: "0 8px 24px rgba(0,0,0,0.35)" }}
+            />
+          </div>
+
+          <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
+            {STATUS_META.map((s) => {
+              const list = tournamentsByStatus[s.id] || [];
+              return (
+                <div
+                  key={s.id}
+                  style={{
+                    background: "rgba(255,255,255,0.1)",
+                    border: "1px solid rgba(255,255,255,0.16)",
+                    borderRadius: 12,
+                    padding: "10px 10px 12px",
+                    backdropFilter: "blur(8px)",
+                    minHeight: 88,
+                  }}
+                >
+                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", opacity: 0.7 }}>{s.title}</div>
+                  <div className="ogc-display" style={{ fontSize: 28, lineHeight: 1, margin: "4px 0 2px" }}>{list.length}</div>
+                  <div style={{ fontSize: 10.5, opacity: 0.7, marginBottom: 6 }}>{s.hint}</div>
+                  {list.length === 0 ? (
+                    <div style={{ fontSize: 11, opacity: 0.55 }}>None</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                      {list.map((t) => (
+                        <div key={t.id} style={{ fontSize: 11.5, fontWeight: 700, lineHeight: 1.3 }}>
+                          {t.name}
+                          <div style={{ fontWeight: 500, opacity: 0.7, fontSize: 10 }}>{fmtDate(t.startDate)} – {fmtDate(t.endDate)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 

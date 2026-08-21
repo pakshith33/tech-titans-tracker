@@ -2,14 +2,13 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import {
   Trophy, Users, Wallet, BarChart3, Plus, X, Check, ChevronRight,
   MessageCircle, Download, Trash2, Archive, Search, ArrowLeft, Calendar,
-  IndianRupee, UserPlus, AlertTriangle, CheckCircle2, Copy, ArrowUpDown, Filter, Upload, Bell
+  IndianRupee, UserPlus, AlertTriangle, CheckCircle2, Copy, ArrowUpDown, Filter, Upload, Bell, ChevronDown
 } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
 import { auth, provider, db } from "./firebase";
 import { collection, onSnapshot, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { parseScorecardHtml } from "./parseCricHeroesScorecard";
 import CricHeroesImportWizard from "./CricHeroesImportWizard";
 import PublicBoard from "./PublicBoard";
 import { computeTournamentStats, fmtDate, inr, publicBoardUrl } from "./settlementMath";
@@ -454,6 +453,57 @@ function PayPage({ params }) {
   );
 }
 
+function NotifyTournamentList({ groups, onSelectTournament }) {
+  const [openIds, setOpenIds] = useState(() => {
+    if (groups.length === 1) return { [groups[0].id]: true };
+    return {};
+  });
+  if (!groups.length) {
+    return <div style={{ fontSize: 13, color: "#8A836E", padding: 8 }}>Everyone is settled.</div>;
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {groups.map((g) => {
+        const open = !!openIds[g.id];
+        const dueN = g.items.filter((n) => n.balance > 0).length;
+        const refundN = g.items.filter((n) => n.balance < 0).length;
+        return (
+          <div key={g.id} style={{ border: "1px solid var(--line-soft)", borderRadius: 10, overflow: "hidden", background: "#fff" }}>
+            <button
+              type="button"
+              onClick={() => setOpenIds((prev) => ({ ...prev, [g.id]: !prev[g.id] }))}
+              style={{ width: "100%", textAlign: "left", background: "var(--pitch-cream)", border: "none", padding: "9px 10px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}
+            >
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 13, color: "var(--pitch-ink)" }}>{g.name}</div>
+                <div style={{ fontSize: 11, color: "#8A836E", marginTop: 2 }}>
+                  {dueN ? `${dueN} due` : ""}{dueN && refundN ? " · " : ""}{refundN ? `${refundN} refund` : ""}
+                </div>
+              </div>
+              <ChevronDown size={16} color="#8A836E" style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none" }} />
+            </button>
+            {open && (
+              <div style={{ padding: 8 }}>
+                {g.items.map((n) => (
+                  <button
+                    key={n.key}
+                    type="button"
+                    onClick={() => onSelectTournament && onSelectTournament(n.tournamentId)}
+                    style={{ width: "100%", textAlign: "left", background: "none", border: "none", borderRadius: 8, padding: "8px 6px", cursor: onSelectTournament ? "pointer" : "default", marginBottom: 2 }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>{n.playerName}</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: n.balance > 0 ? "var(--ball-red)" : "#7A5A0F", marginTop: 2 }}>{n.balance > 0 ? `Due ${inr(n.balance)}` : `Refund ${inr(-n.balance)}`}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------------------- */
 /* Main App                                                              */
 /* ---------------------------------------------------------------------- */
@@ -481,7 +531,6 @@ export default function App() {
   const [openTournamentId, setOpenTournamentId] = useState(null);
   const [toast, setToast] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [showCricHeroesTest, setShowCricHeroesTest] = useState(false);
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [notifyPopup, setNotifyPopup] = useState(false);
   const notifyPopupArmed = useRef(false);
@@ -680,6 +729,7 @@ export default function App() {
           key: `${t.id}-${b.playerId}`,
           tournamentId: t.id,
           tournamentName: t.name,
+          startDate: t.startDate || "",
           playerName: playersById[b.playerId]?.name || "Unknown",
           balance: bal,
         });
@@ -687,6 +737,31 @@ export default function App() {
     });
     return items;
   }, [tournamentsWithData, playersById]);
+
+  const notifyGroups = useMemo(() => {
+    const byId = {};
+    notifyItems.forEach((n) => {
+      if (!byId[n.tournamentId]) {
+        byId[n.tournamentId] = {
+          id: n.tournamentId,
+          name: n.tournamentName,
+          startDate: n.startDate || "",
+          items: [],
+        };
+      }
+      byId[n.tournamentId].items.push(n);
+    });
+    return Object.values(byId)
+      .sort((a, b) => {
+        const byDate = String(b.startDate).localeCompare(String(a.startDate));
+        if (byDate !== 0) return byDate;
+        return a.name.localeCompare(b.name);
+      })
+      .map((g) => ({
+        ...g,
+        items: [...g.items].sort((a, b) => a.playerName.localeCompare(b.playerName)),
+      }));
+  }, [notifyItems]);
 
   useEffect(() => {
     notifyPopupArmed.current = false;
@@ -732,7 +807,8 @@ export default function App() {
       <FontLoader />
       
       {/* HEADER SECTION WITH CRICKET THEME */}
-      <div style={{ background: "linear-gradient(135deg, var(--pitch-green-deep) 0%, #374151 100%)", color: "#fff", padding: "18px 18px 22px", position: "relative", overflow: "hidden", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ background: "linear-gradient(135deg, var(--pitch-green-deep) 0%, #374151 100%)", color: "#fff", padding: "18px 12px 22px", position: "relative", zIndex: 80, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+        <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
         {/* Cricket pitch lines decoration */}
         <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 2, background: "rgba(255,255,255,0.08)", transform: "translateX(-50%)" }} />
         <div style={{ position: "absolute", left: "50%", top: "50%", width: 30, height: 30, border: "2px solid rgba(255,255,255,0.08)", borderRadius: "50%", transform: "translate(-50%, -50%)" }} />
@@ -745,48 +821,39 @@ export default function App() {
         <div style={{ position: "absolute", left: 15, bottom: 5, opacity: 0.1 }}>
           <CricketStumps size={30} color="#fff" />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, position: "relative" }}>
-          <div style={{ width: 42, height: 42, borderRadius: 12, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", minWidth: 0, flex: 1 }}>
+          <div style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 12, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
             <img src={`${process.env.PUBLIC_URL}/logo.png`} style={{ width: "100%", height: "100%", objectFit: "contain" }} alt="Team Logo" />
           </div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div className="ogc-display" style={{ fontSize: 26, lineHeight: 1, display: "flex", alignItems: "center", gap: 8 }}>
               TECH TITANS
               <CricketBat size={18} color="var(--pitch-green)" />
             </div>
-            <div style={{ fontSize: 11, opacity: 0.7, fontWeight: 500, marginTop: 2 }}>Logged in as {user.email.split('@')[0]}</div>
+            <div style={{ fontSize: 11, opacity: 0.7, fontWeight: 500, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Logged in as {user.email.split('@')[0]}</div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, position: "relative" }}>
+        <div style={{ display: "flex", gap: 8, position: "relative", flexShrink: 0, alignItems: "center" }}>
           <button
             type="button"
             className="ogc-btn"
             title="Pending dues and refunds"
             onClick={() => setNotifyOpen((v) => !v)}
-            style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "8px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", position: "relative" }}
+            style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "8px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", position: "relative", flexShrink: 0, minWidth: 40, minHeight: 36, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
           >
-            <Bell size={16} />
+            <Bell size={18} />
             {notifyItems.length > 0 && (
               <span style={{ position: "absolute", top: -4, right: -4, background: "var(--ball-red)", color: "#fff", fontSize: 10, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>{notifyItems.length}</span>
             )}
           </button>
           {notifyOpen && (
-            <div style={{ position: "absolute", right: 0, top: 40, width: 280, maxHeight: 360, overflowY: "auto", background: "#fff", color: "var(--pitch-ink)", borderRadius: 12, boxShadow: "0 12px 40px rgba(0,0,0,0.25)", zIndex: 50, padding: 10 }}>
+            <div style={{ position: "absolute", right: 0, top: 40, width: "min(280px, calc(100vw - 24px))", maxHeight: "min(360px, 70vh)", overflowY: "auto", background: "#fff", color: "var(--pitch-ink)", borderRadius: 12, boxShadow: "0 12px 40px rgba(0,0,0,0.28)", zIndex: 90, padding: 10 }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: "#8A836E", textTransform: "uppercase", marginBottom: 8 }}>Pending & refunds</div>
-              {notifyItems.length === 0 ? (
-                <div style={{ fontSize: 13, color: "#8A836E", padding: 8 }}>Everyone is settled.</div>
-              ) : notifyItems.map((n) => (
-                <button
-                  key={n.key}
-                  type="button"
-                  onClick={() => { setOpenTournamentId(n.tournamentId); setTab("tournaments"); setNotifyOpen(false); }}
-                  style={{ width: "100%", textAlign: "left", background: "var(--pitch-cream)", border: "none", borderRadius: 8, padding: 8, marginBottom: 6, cursor: "pointer" }}
-                >
-                  <div style={{ fontWeight: 700, fontSize: 13 }}>{n.playerName}</div>
-                  <div style={{ fontSize: 11, color: "#8A836E" }}>{n.tournamentName}</div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: n.balance > 0 ? "var(--ball-red)" : "#7A5A0F", marginTop: 2 }}>{n.balance > 0 ? `Owes ${inr(n.balance)}` : `Refund ${inr(-n.balance)}`}</div>
-                </button>
-              ))}
+              <NotifyTournamentList
+                groups={notifyGroups}
+                onSelectTournament={(id) => { setOpenTournamentId(id); setTab("tournaments"); setNotifyOpen(false); }}
+              />
               <button
                 type="button"
                 onClick={() => { navigator.clipboard.writeText(publicBoardUrl()).then(() => showToast("Public board link copied", false)); }}
@@ -796,25 +863,9 @@ export default function App() {
               </button>
             </div>
           )}
-          <button
-            type="button"
-            className="ogc-btn"
-            title="Preview CricHeroes scorecard from a saved HTML file"
-            onClick={() => setShowCricHeroesTest(true)}
-            style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}
-          >
-            Import Preview
-          </button>
-          <button onClick={() => signOut(auth)} className="ogc-btn" style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)" }}>Sign Out</button>
+          <button onClick={() => signOut(auth)} className="ogc-btn" style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "8px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", backdropFilter: "blur(4px)", flexShrink: 0, whiteSpace: "nowrap" }}>Sign Out</button>
         </div>
       </div>
-
-      {showCricHeroesTest && (
-        <CricHeroesUploadPreviewModal
-          onClose={() => setShowCricHeroesTest(false)}
-          showToast={showToast}
-        />
-      )}
 
       <div style={{ padding: "14px 14px 4px" }}>
         {openTournament ? (
@@ -875,15 +926,15 @@ export default function App() {
           {notifyItems.length === 0 ? (
             <p style={{ fontSize: 14, color: "#5C5647" }}>Everyone is settled.</p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {notifyItems.map((n) => (
-                <div key={n.key} style={{ background: "#fff", border: "1px solid var(--line-soft)", borderRadius: 10, padding: 10 }}>
-                  <div style={{ fontWeight: 700 }}>{n.playerName}</div>
-                  <div style={{ fontSize: 12, color: "#8A836E" }}>{n.tournamentName}</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, marginTop: 4, color: n.balance > 0 ? "var(--ball-red)" : "#7A5A0F" }}>{n.balance > 0 ? `Owes ${inr(n.balance)}` : `Refund ${inr(-n.balance)}`}</div>
-                </div>
-              ))}
-            </div>
+            <NotifyTournamentList
+              groups={notifyGroups}
+              onSelectTournament={(id) => {
+                if (user?.email) localStorage.setItem(notifySeenKey(user.email), localDayStamp());
+                setNotifyPopup(false);
+                setOpenTournamentId(id);
+                setTab("tournaments");
+              }}
+            />
           )}
           <Btn style={{ width: "100%", justifyContent: "center", marginTop: 14 }} onClick={() => {
             if (user?.email) localStorage.setItem(notifySeenKey(user.email), localDayStamp());
@@ -1054,178 +1105,6 @@ function DuesTab({ tournaments, playersById, onOpenTournament }) {
   );
 }
 
-/** Upload saved CricHeroes scorecard HTML and preview parsed match/teams/players. */
-function CricHeroesUploadPreviewModal({ onClose, showToast }) {
-  const [fileName, setFileName] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [parsed, setParsed] = useState(null);
-
-  const onFileChange = async (e) => {
-    const file = e.target.files && e.target.files[0];
-    e.target.value = "";
-    if (!file) return;
-
-    const lower = file.name.toLowerCase();
-    if (!lower.endsWith(".html") && !lower.endsWith(".htm")) {
-      setError("Please upload a .html or .htm file (Save Page As from CricHeroes).");
-      setParsed(null);
-      setFileName("");
-      return;
-    }
-
-    setBusy(true);
-    setError("");
-    setParsed(null);
-    setFileName(file.name);
-
-    try {
-      const html = await file.text();
-      if (!html || html.trim().length < 200) {
-        throw new Error("File looks empty or too small to be a scorecard.");
-      }
-      if (/cloudflare|attention required|access denied/i.test(html) && html.length < 20000) {
-        // Soft warning only — real scorecards are much larger
-      }
-      const result = parseScorecardHtml(html, { fileName: file.name });
-      if (!result.matchName || !result.date || !result.teams || result.teams.length < 2) {
-        throw new Error(
-          "Could not find match name, date, and both teams. Make sure you saved the full CricHeroes scorecard page (Webpage, Complete or HTML only)."
-        );
-      }
-      const emptyTeam = result.teams.find((t) => !t.players || t.players.length === 0);
-      if (emptyTeam) {
-        throw new Error(
-          `Parsed teams but "${emptyTeam.name}" has 0 players. Try re-saving the scorecard HTML from CricHeroes.`
-        );
-      }
-      setParsed(result);
-      showToast("Scorecard parsed — preview below", false);
-    } catch (err) {
-      setParsed(null);
-      setError(err.message || String(err));
-      showToast("Could not parse that HTML file", false);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div
-      style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000,
-        display: "flex", alignItems: "flex-end", justifyContent: "center",
-      }}
-      onClick={onClose}
-    >
-      <div
-        className="ogc-card"
-        style={{
-          width: "100%", maxWidth: 480, maxHeight: "88vh", overflow: "auto",
-          background: "#fff", borderRadius: "16px 16px 0 0", padding: 16,
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <div style={{ fontWeight: 800, fontSize: 16 }}>Import preview</div>
-          <button type="button" onClick={onClose} style={{ border: "none", background: "transparent", cursor: "pointer" }}><X size={18} /></button>
-        </div>
-        <p style={{ fontSize: 12.5, color: "#6B6552", marginBottom: 10, lineHeight: 1.45 }}>
-          On CricHeroes: open the match <strong>Scorecard</strong> tab, then <strong>File → Save Page As…</strong> (HTML). Upload that file here.
-          This step only previews parsed data — creating a match comes later.
-        </p>
-        <div
-          style={{
-            background: "#FFFBEB",
-            border: "1.5px solid #F59E0B",
-            borderRadius: 10,
-            padding: "10px 12px",
-            marginBottom: 12,
-            fontSize: 12.5,
-            color: "#92400E",
-            lineHeight: 1.45,
-          }}
-        >
-          <b>Caution:</b> The saved HTML must be from the <b>Scorecard</b> tab (not Summary, Commentary, Teams, etc.).
-        </div>
-
-        <label
-          style={{
-            display: "block", border: "1px dashed #C9C3B2", borderRadius: 10,
-            padding: "14px 12px", textAlign: "center", cursor: busy ? "wait" : "pointer",
-            background: "#FAFAF7", marginBottom: 12,
-          }}
-        >
-          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
-            {busy ? "Reading file…" : "Upload .html scorecard"}
-          </div>
-          <div style={{ fontSize: 11.5, color: "#8A836E" }}>
-            {fileName || "Choose a .html / .htm file"}
-          </div>
-          <input
-            type="file"
-            accept=".html,.htm,text/html"
-            disabled={busy}
-            onChange={onFileChange}
-            style={{ display: "none" }}
-          />
-        </label>
-
-        {error && (
-          <div style={{
-            background: "#FEF2F2", color: "#991B1B", borderRadius: 8,
-            padding: "10px 12px", fontSize: 12.5, marginBottom: 12, lineHeight: 1.4,
-          }}>
-            {error}
-          </div>
-        )}
-
-        {parsed && (
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#166534", marginBottom: 8 }}>PREVIEW</div>
-            <div className="ogc-card" style={{ padding: 12, marginBottom: 10, background: "#F4F5F7", boxShadow: "none" }}>
-              <div style={{ fontWeight: 800, fontSize: 15 }}>{parsed.matchName}</div>
-              <div style={{ fontSize: 12, color: "#6B6552", marginTop: 4 }}>
-                Date: {parsed.date}
-                {parsed.matchId ? ` · Match ID: ${parsed.matchId}` : ""}
-              </div>
-              {parsed.fileName && (
-                <div style={{ fontSize: 11, color: "#8A836E", marginTop: 2 }}>File: {parsed.fileName}</div>
-              )}
-            </div>
-
-            {parsed.teams.map((team) => (
-              <div key={team.name} style={{ marginBottom: 12 }}>
-                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>
-                  {team.name}{" "}
-                  <span style={{ color: "#8A836E", fontWeight: 600 }}>({team.players.length} players)</span>
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {team.players.map((p) => (
-                    <span
-                      key={`${team.name}-${p.name}-${p.cricheroesPlayerId || ""}`}
-                      style={{
-                        fontSize: 11.5, background: "#EDEBE3", padding: "4px 8px",
-                        borderRadius: 999,
-                      }}
-                      title={p.cricheroesPlayerId ? `CricHeroes #${p.cricheroesPlayerId}` : "No CricHeroes id found"}
-                    >
-                      {p.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-
-            <p style={{ fontSize: 11.5, color: "#8A836E", marginTop: 4, lineHeight: 1.4 }}>
-              If this looks right, we’re ready for the next step (team pick, player mapping, create match) after you confirm.
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function TournamentsTab({ tournaments, players, onSave, onOpen, showToast }) {
   const [showForm, setShowForm] = useState(false);
