@@ -183,6 +183,18 @@ const Confetti = () => {
 /* ---------------------------------------------------------------------- */
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`);
 
+function localDayStamp() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function notifySeenKey(email) {
+  return `tt-notify-seen-${email}`;
+}
+
 const formatWhatsAppNumber = (rawNumber) => {
   if (!rawNumber) return "";
   const cleanNumber = rawNumber.replace(/\D/g, "");
@@ -677,10 +689,15 @@ export default function App() {
   }, [tournamentsWithData, playersById]);
 
   useEffect(() => {
+    notifyPopupArmed.current = false;
+  }, [user?.email]);
+
+  useEffect(() => {
     if (!user || notifyItems.length === 0 || notifyPopupArmed.current) return;
-    const key = `tt-notify-popup-${user.email}`;
+    const key = notifySeenKey(user.email);
     notifyPopupArmed.current = true;
-    if (sessionStorage.getItem(key)) return;
+    if (localStorage.getItem(key) === localDayStamp()) return;
+    localStorage.setItem(key, localDayStamp());
     setNotifyPopup(true);
   }, [user, notifyItems]);
 
@@ -852,7 +869,7 @@ export default function App() {
 
       {notifyPopup && (
         <Modal title="Pending & refunds" onClose={() => {
-          if (user?.email) sessionStorage.setItem(`tt-notify-popup-${user.email}`, "1");
+          if (user?.email) localStorage.setItem(notifySeenKey(user.email), localDayStamp());
           setNotifyPopup(false);
         }}>
           {notifyItems.length === 0 ? (
@@ -869,7 +886,7 @@ export default function App() {
             </div>
           )}
           <Btn style={{ width: "100%", justifyContent: "center", marginTop: 14 }} onClick={() => {
-            if (user?.email) sessionStorage.setItem(`tt-notify-popup-${user.email}`, "1");
+            if (user?.email) localStorage.setItem(notifySeenKey(user.email), localDayStamp());
             setNotifyPopup(false);
           }}>Got it</Btn>
         </Modal>

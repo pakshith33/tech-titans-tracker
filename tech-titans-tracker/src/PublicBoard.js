@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
-import { Search, Users } from "lucide-react";
+import { Search, Users, ChevronDown } from "lucide-react";
 import { db } from "./firebase";
 import { computeTournamentStats, fmtDate, inr } from "./settlementMath";
 
@@ -35,6 +35,15 @@ function paymentStatus(balance) {
   return { kind: "settled", label: "Settled", amount: 0 };
 }
 
+function playerMatchesStatusFilter(p, statusFilter) {
+  if (statusFilter === "all") return true;
+  const kinds = new Set(p.tournaments.map((t) => paymentStatus(t.balance).kind));
+  if (statusFilter === "due") return kinds.has("due");
+  if (statusFilter === "refund") return kinds.has("refund");
+  if (statusFilter === "settled") return p.tournaments.length > 0 && [...kinds].every((k) => k === "settled");
+  return true;
+}
+
 function StatusPill({ balance }) {
   const s = paymentStatus(balance);
   const styles = {
@@ -60,6 +69,7 @@ export default function PublicBoard() {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [openIds, setOpenIds] = useState({});
 
   useEffect(() => {
     const unsubs = [];
@@ -162,9 +172,7 @@ export default function PublicBoard() {
     let list = playerRows;
     if (q) list = list.filter((p) => p.name.toLowerCase().includes(q));
     if (selectedId) list = list.filter((p) => p.id === selectedId);
-    if (statusFilter === "due") list = list.filter((p) => paymentStatus(p.netBalance).kind === "due");
-    if (statusFilter === "refund") list = list.filter((p) => paymentStatus(p.netBalance).kind === "refund");
-    if (statusFilter === "settled") list = list.filter((p) => paymentStatus(p.netBalance).kind === "settled");
+    list = list.filter((p) => playerMatchesStatusFilter(p, statusFilter));
     return list;
   }, [playerRows, query, selectedId, statusFilter]);
 
@@ -219,19 +227,16 @@ export default function PublicBoard() {
             >
               All players
             </button>
-            {playerRows.map((p) => {
-              const s = paymentStatus(p.netBalance);
-              return (
+            {playerRows.map((p) => (
               <button
                 key={p.id}
                 type="button"
-                onClick={() => { setSelectedId(p.id); setQuery(""); }}
+                onClick={() => { setSelectedId(p.id); setQuery(""); setOpenIds((prev) => ({ ...prev, [p.id]: true })); }}
                 style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 999, border: "1.5px solid var(--line-soft)", background: selectedId === p.id ? "#1F2937" : "#fff", color: selectedId === p.id ? "#fff" : "#090C10", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
               >
-                {p.name} · {s.label}
+                {p.name}
               </button>
-              );
-            })}
+            ))}
           </div>
         )}
 
@@ -246,20 +251,30 @@ export default function PublicBoard() {
           </div>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {filtered.map((p) => (
-            <div key={p.id} style={{ background: "#fff", borderRadius: 16, border: "1px solid var(--line-soft)", padding: 16, boxShadow: "0 6px 24px rgba(9,12,16,0.06)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {filtered.map((p) => {
+            const open = !!openIds[p.id];
+            return (
+            <div key={p.id} style={{ background: "#fff", borderRadius: 16, border: "1px solid var(--line-soft)", boxShadow: "0 6px 24px rgba(9,12,16,0.06)" }}>
+              <button
+                type="button"
+                onClick={() => setOpenIds((prev) => ({ ...prev, [p.id]: !prev[p.id] }))}
+                style={{ width: "100%", textAlign: "left", background: "none", border: "none", padding: 16, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}
+              >
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: 18 }}>{p.name}</div>
+                  <div style={{ fontWeight: 800, fontSize: 17, color: "#090C10" }}>{p.name}</div>
                   <div style={{ fontSize: 12, color: "#8A836E", marginTop: 2 }}>
-                    {p.tournaments.length} tournament{p.tournaments.length === 1 ? "" : "s"} · Owed {inr(p.netOwed)} · Paid {inr(p.netPaid)}
+                    {p.tournaments.length} tournament{p.tournaments.length === 1 ? "" : "s"}
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: "#6B6552", textTransform: "uppercase", letterSpacing: "0.04em", marginTop: 8 }}>Payment status</div>
                 </div>
-                <StatusPill balance={p.netBalance} />
-              </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <StatusPill balance={p.netBalance} />
+                  <ChevronDown size={18} color="#8A836E" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+                </div>
+              </button>
 
+              {open && (
+              <div style={{ padding: "0 16px 16px" }}>
               {p.tournaments.map((t) => (
                 <div key={t.id} style={{ borderTop: "1px solid var(--line-soft)", paddingTop: 12, marginTop: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
@@ -301,8 +316,11 @@ export default function PublicBoard() {
                   </div>
                 </div>
               ))}
+              </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
