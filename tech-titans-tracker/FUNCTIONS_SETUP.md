@@ -1,6 +1,6 @@
 # CricHeroes Function — Blaze setup & deploy (other computer)
 
-> **Status (2026-08-18):** The callable was deployed and tested. CricHeroes returns **HTTP 403** to Cloud Functions, so **product import uses HTML upload in the app**, not this Function. The Function remains deployed per user request but is **unused**. For import behavior and next work, see [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md). Keep this doc for Blaze/function ops or if URL fetch is revisited.
+> **Status (2026-08-21):** The callable was deployed and tested. CricHeroes/Cloudflare returns **HTTP 403** to Cloud Functions **and** to other datacenter fetches, so **product import uses HTML upload**. Paste-URL auto-download is **not** being built. Next friction-reduction path (if asked): browser bookmarklet. See [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md) §12. The Function remains deployed per user request but is **unused**.
 
 Function-only slice (historical). App import UI is separate.
 

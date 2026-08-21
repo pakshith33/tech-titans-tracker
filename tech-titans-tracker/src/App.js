@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Trophy, Users, Wallet, BarChart3, Plus, X, Check, ChevronRight,
   MessageCircle, Download, Trash2, Archive, Search, ArrowLeft, Calendar,
-  IndianRupee, UserPlus, AlertTriangle, CheckCircle2, Copy, ArrowUpDown, Filter, Upload
+  IndianRupee, UserPlus, AlertTriangle, CheckCircle2, Copy, ArrowUpDown, Filter, Upload, Bell
 } from "lucide-react";
 
 // --- FIREBASE IMPORTS ---
@@ -11,6 +11,8 @@ import { collection, onSnapshot, doc, getDoc, setDoc, deleteDoc } from "firebase
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { parseScorecardHtml } from "./parseCricHeroesScorecard";
 import CricHeroesImportWizard from "./CricHeroesImportWizard";
+import PublicBoard from "./PublicBoard";
+import { computeTournamentStats, fmtDate, inr, publicBoardUrl } from "./settlementMath";
 
 // Access is controlled by Firestore security rules, which only allow a
 // request through when a document exists at admins/{their email}. This
@@ -180,43 +182,12 @@ const Confetti = () => {
 /* Helpers & Math                                                        */
 /* ---------------------------------------------------------------------- */
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`);
-const inr = (n) => `₹${Math.round(n).toLocaleString("en-IN")}`;
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
 const formatWhatsAppNumber = (rawNumber) => {
   if (!rawNumber) return "";
   const cleanNumber = rawNumber.replace(/\D/g, "");
   return cleanNumber.length === 10 ? `91${cleanNumber}` : cleanNumber;
 };
-
-function computeTournamentStats(t) {
-  const numMatches = t.matches ? t.matches.length : 0;
-  const costPerMatch = numMatches > 0 ? Math.round(t.totalFee / numMatches) : 0;
-  const perMatch = (t.matches || []).map((m) => {
-    const n = m.participantIds.length;
-    const additionalAmount = Number(m.additionalAmount) || 0;
-    const matchCost = costPerMatch + additionalAmount;
-    const perPlayer = n > 0 ? Math.round(matchCost / n) : 0;
-    return { ...m, cost: matchCost, baseCost: costPerMatch, additionalAmount, perPlayer, participantCount: n };
-  });
-  const paidTotal = (t.payments || []).reduce((s, p) => s + p.amount, 0);
-  const playerStats = {}; 
-  perMatch.forEach((m) => {
-    m.participantIds.forEach((pid) => {
-      if (!playerStats[pid]) playerStats[pid] = { owed: 0, paid: 0, matches: [] };
-      playerStats[pid].owed += m.perPlayer;
-      playerStats[pid].matches.push(m);
-    });
-  });
-  (t.payments || []).forEach((p) => {
-    if (!playerStats[p.playerId]) playerStats[p.playerId] = { owed: 0, paid: 0, matches: [] };
-    playerStats[p.playerId].paid += p.amount;
-  });
-  const balances = Object.entries(playerStats).map(([playerId, s]) => ({
-    playerId, owed: s.owed, paid: s.paid, balance: s.owed - s.paid, matches: s.matches,
-  }));
-  return { numMatches, costPerMatch, perMatch, paidTotal, playerStats, balances };
-}
 
 // Builds a UPI deep link (upi://pay?...) that opens PhonePe/GPay/any UPI app
 // with just the UPI ID pre-filled. Amount is intentionally omitted so the user
@@ -280,14 +251,10 @@ function computeCentralizedSettlement(t, stats, playersById) {
 
     const header = `Hi ${player?.name},\n\nYou have played the following match(es) in ${t.name}:\n${matchLines}\n\nTotal Cost For All Matches: ${inr(b.owed)}\nYou have paid a total of: ${inr(b.paid)}\nTotal Amount Due: ${inr(b.balance)}`;
 
-    const payNowUrl = buildPayNowUrl({
-      vpa: treasurerUpiId, payeeName: treasurerName, amount: exactAmount, note: `${t.name} fee`,
-    });
-
     let closing;
     if (b.balance > 1) {
-      const payLine = payNowUrl
-        ? `Pay Now: ${payNowUrl}\n(or PhonePe/GPay to ${treasurerMobile || treasurerName} and share the screenshot)`
+      const payLine = treasurerUpiId
+        ? `Pay via UPI ID: ${treasurerUpiId}\n(PhonePe/GPay to ${treasurerName} and share the screenshot)`
         : `Please send this to our Treasurer, ${treasurerName}${treasurerMobile ? ` (${treasurerMobile})` : ""}, via PhonePe/GPay and share the screenshot.`;
       closing = `\n\n${payLine}\n\nThanks,\n${treasurerName}`;
     } else if (b.balance < -1) {
@@ -300,7 +267,7 @@ function computeCentralizedSettlement(t, stats, playersById) {
     const waNumber = formatWhatsAppNumber(player?.mobile);
     const whatsappLink = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
 
-    return { ...b, exactAmount, message, whatsappLink, upiLink: b.balance > 1 ? payNowUrl : "" };
+    return { ...b, exactAmount, message, whatsappLink, upiLink: b.balance > 1 && treasurerUpiId ? treasurerUpiId : "" };
   });
 }
 
@@ -483,6 +450,10 @@ export default function App() {
   // everything needed to render in the URL itself, same as what's already
   // visible in the WhatsApp message that links to them.
   const payParams = useMemo(() => parsePayParamsFromHash(), []);
+  const isPublicBoard = useMemo(() => {
+    const hash = window.location.hash || "";
+    return hash === "#/board" || hash.startsWith("#/board?");
+  }, []);
 
   const [user, setUser] = useState(null);
   const [authChecking, setAuthChecking] = useState(true);
@@ -499,6 +470,9 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showCricHeroesTest, setShowCricHeroesTest] = useState(false);
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifyPopup, setNotifyPopup] = useState(false);
+  const notifyPopupArmed = useRef(false);
 
   const showToast = useCallback((msg, withConfetti = true) => { 
     setToast(msg); 
@@ -627,12 +601,24 @@ export default function App() {
     return () => { unsubPlayers(); unsubTournaments(); unsubPayments(); unsubMatches(); unsubMaps(); };
   }, [user]);
 
+  useEffect(() => {
+    if (!user || players.length === 0) return;
+    players.forEach((p) => {
+      setDoc(doc(db, "playerDirectory", p.id), { id: p.id, name: p.name, active: p.active !== false }).catch(() => {});
+    });
+  }, [user, players]);
+
   // Database Handlers
   const firebaseSavePlayer = async (playerData) => {
     const id = playerData.id || uid();
-    await setDoc(doc(db, "players", id), { ...playerData, id });
+    const payload = { ...playerData, id };
+    await setDoc(doc(db, "players", id), payload);
+    await setDoc(doc(db, "playerDirectory", id), { id, name: payload.name, active: payload.active !== false });
   };
-  const firebaseDeletePlayer = async (id) => { await deleteDoc(doc(db, "players", id)); };
+  const firebaseDeletePlayer = async (id) => {
+    await deleteDoc(doc(db, "players", id));
+    await deleteDoc(doc(db, "playerDirectory", id));
+  };
 
   const firebaseSaveTournament = async (tournData) => {
     const id = tournData.id || uid();
@@ -671,12 +657,40 @@ export default function App() {
     return out;
   }, [cricheroesPlayerMaps]);
 
+  const notifyItems = useMemo(() => {
+    const items = [];
+    tournamentsWithData.filter((t) => !t.archived).forEach((t) => {
+      const stats = computeTournamentStats(t);
+      stats.balances.forEach((b) => {
+        const bal = Math.round(b.balance);
+        if (bal === 0) return;
+        items.push({
+          key: `${t.id}-${b.playerId}`,
+          tournamentId: t.id,
+          tournamentName: t.name,
+          playerName: playersById[b.playerId]?.name || "Unknown",
+          balance: bal,
+        });
+      });
+    });
+    return items;
+  }, [tournamentsWithData, playersById]);
+
+  useEffect(() => {
+    if (!user || notifyItems.length === 0 || notifyPopupArmed.current) return;
+    const key = `tt-notify-popup-${user.email}`;
+    notifyPopupArmed.current = true;
+    if (sessionStorage.getItem(key)) return;
+    setNotifyPopup(true);
+  }, [user, notifyItems]);
+
   const handleLogin = async () => {
     try { await signInWithPopup(auth, provider); } 
     catch (error) { setAuthError("Login failed. Try again."); }
   };
 
   if (payParams) return <PayPage params={payParams} />;
+  if (isPublicBoard) return <PublicBoard />;
 
   if (authChecking) return <div className="ogc-root" style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><FontLoader />Loading...</div>;
 
@@ -727,6 +741,44 @@ export default function App() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, position: "relative" }}>
+          <button
+            type="button"
+            className="ogc-btn"
+            title="Pending dues and refunds"
+            onClick={() => setNotifyOpen((v) => !v)}
+            style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", padding: "8px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", position: "relative" }}
+          >
+            <Bell size={16} />
+            {notifyItems.length > 0 && (
+              <span style={{ position: "absolute", top: -4, right: -4, background: "var(--ball-red)", color: "#fff", fontSize: 10, fontWeight: 800, minWidth: 16, height: 16, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>{notifyItems.length}</span>
+            )}
+          </button>
+          {notifyOpen && (
+            <div style={{ position: "absolute", right: 0, top: 40, width: 280, maxHeight: 360, overflowY: "auto", background: "#fff", color: "var(--pitch-ink)", borderRadius: 12, boxShadow: "0 12px 40px rgba(0,0,0,0.25)", zIndex: 50, padding: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#8A836E", textTransform: "uppercase", marginBottom: 8 }}>Pending & refunds</div>
+              {notifyItems.length === 0 ? (
+                <div style={{ fontSize: 13, color: "#8A836E", padding: 8 }}>Everyone is settled.</div>
+              ) : notifyItems.map((n) => (
+                <button
+                  key={n.key}
+                  type="button"
+                  onClick={() => { setOpenTournamentId(n.tournamentId); setTab("tournaments"); setNotifyOpen(false); }}
+                  style={{ width: "100%", textAlign: "left", background: "var(--pitch-cream)", border: "none", borderRadius: 8, padding: 8, marginBottom: 6, cursor: "pointer" }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: 13 }}>{n.playerName}</div>
+                  <div style={{ fontSize: 11, color: "#8A836E" }}>{n.tournamentName}</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: n.balance > 0 ? "var(--ball-red)" : "#7A5A0F", marginTop: 2 }}>{n.balance > 0 ? `Owes ${inr(n.balance)}` : `Refund ${inr(-n.balance)}`}</div>
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => { navigator.clipboard.writeText(publicBoardUrl()).then(() => showToast("Public board link copied", false)); }}
+                style={{ width: "100%", marginTop: 4, background: "none", border: "none", color: "var(--pitch-green-deep)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+              >
+                Copy public board link
+              </button>
+            </div>
+          )}
           <button
             type="button"
             className="ogc-btn"
@@ -796,6 +848,31 @@ export default function App() {
             );
           })}
         </div>
+      )}
+
+      {notifyPopup && (
+        <Modal title="Pending & refunds" onClose={() => {
+          if (user?.email) sessionStorage.setItem(`tt-notify-popup-${user.email}`, "1");
+          setNotifyPopup(false);
+        }}>
+          {notifyItems.length === 0 ? (
+            <p style={{ fontSize: 14, color: "#5C5647" }}>Everyone is settled.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {notifyItems.map((n) => (
+                <div key={n.key} style={{ background: "#fff", border: "1px solid var(--line-soft)", borderRadius: 10, padding: 10 }}>
+                  <div style={{ fontWeight: 700 }}>{n.playerName}</div>
+                  <div style={{ fontSize: 12, color: "#8A836E" }}>{n.tournamentName}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, marginTop: 4, color: n.balance > 0 ? "var(--ball-red)" : "#7A5A0F" }}>{n.balance > 0 ? `Owes ${inr(n.balance)}` : `Refund ${inr(-n.balance)}`}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          <Btn style={{ width: "100%", justifyContent: "center", marginTop: 14 }} onClick={() => {
+            if (user?.email) sessionStorage.setItem(`tt-notify-popup-${user.email}`, "1");
+            setNotifyPopup(false);
+          }}>Got it</Btn>
+        </Modal>
       )}
 
       {toast && <div style={{ position: "fixed", bottom: 84, left: "50%", transform: "translateX(-50%)", background: "var(--pitch-ink)", color: "#fff", padding: "12px 20px", borderRadius: 999, fontSize: 13, fontWeight: 600, zIndex: 200, maxWidth: "90%", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.25)" }}>{toast}</div>}
@@ -1354,6 +1431,20 @@ function TournamentDetail({
     const name = playersById[b.playerId]?.name || "Player";
     showToast(amount < 0 ? `Marked ${inr(-amount)} refunded to ${name}` : `Marked ${inr(amount)} received from ${name}`);
   };
+
+  const markUnsettled = (b) => {
+    const playerPays = (tournament.payments || []).filter((p) => p.playerId === b.playerId);
+    if (playerPays.length === 0) {
+      showToast("No payment to revert", false);
+      return;
+    }
+    const marked = playerPays.filter((p) => p.note && String(p.note).includes("Settlement tab"));
+    const pool = marked.length ? marked : playerPays;
+    const last = [...pool].sort((a, c) => String(c.date || "").localeCompare(String(a.date || "")) || String(c.id || "").localeCompare(String(a.id || "")))[0];
+    firebaseDeletePayment(last.id);
+    const name = playersById[b.playerId]?.name || "Player";
+    showToast(`Reverted last settlement for ${name}`);
+  };
   
   const saveMatch = async (data, existingId) => {
     const isEdit = !!existingId;
@@ -1633,6 +1724,13 @@ function TournamentDetail({
                         <div style={{ marginTop: 8, borderTop: "1px solid var(--line-soft)", paddingTop: 8 }}>
                           <Btn variant="outline" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => markSettled(b)}>
                             <CheckCircle2 size={13} /> {b.balance > 0 ? "Mark Received" : "Mark Refunded"}
+                          </Btn>
+                        </div>
+                      )}
+                      {settled && (
+                        <div style={{ marginTop: 8, borderTop: "1px solid var(--line-soft)", paddingTop: 8 }}>
+                          <Btn variant="ghost" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => markUnsettled(b)}>
+                            Mark unsettled
                           </Btn>
                         </div>
                       )}

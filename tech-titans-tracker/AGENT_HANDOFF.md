@@ -2,7 +2,7 @@
 
 This file exists so a fresh agent session (or a future you) can pick up this project without re-reading the entire chat history. It captures the current state, the reasoning behind key decisions, and known constraints/gotchas.
 
-Last updated: 2026-08-18. CricHeroes HTML import wizard added (see §12 + [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md)). Incl. Scorecard-tab save caution + live billing selection count.
+Last updated: 2026-08-21. CricHeroes: no paste-URL fetch; no hook inside their Android app. See [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md) §12–§13.
 
 ## 1. What this app is
 
@@ -83,7 +83,8 @@ Still present: match/player filters & sorts, clone match/tournament, match delet
 ## 9. Explicitly NOT built (ask first)
 
 - Charts; non-tournament club expenses; membership fees; admin vs viewer roles; PWA; in-app admins UI; WhatsApp Business API.
-- Live CricHeroes **URL** import (GCP fetch returns 403; HTML upload is the path).
+- Live CricHeroes **paste-URL** import on Cloud Functions / GitHub Pages (Cloudflare 403 + CORS). HTML upload remains the path; bookmarklet (path A) only if asked.
+- Integration **inside** the official CricHeroes Android app (not possible). Share-URL still cannot fetch HTML. Partnership email / WebView / PDF only if asked after Share test.
 
 ## 10. Quick file map
 
@@ -112,3 +113,6 @@ Still present: match/player filters & sorts, clone match/tournament, match delet
 - `cricheroesPlayerMaps` + `matches.cricheroesMatchId` (UI enforces unique id app-wide).
 - After pull: `npm run rules:deploy` then `npm run deploy`.
 - Cloud Function still deployed, unused.
+- **2026-08-21:** URL auto-download not implemented. Path **A** (bookmarklet) is the chosen next option; paid unlocker **B** declined for now. Agent/datacenter fetches of cricheroes.com are Cloudflare-blocked.
+- **Android:** cannot modify CricHeroes APK. Share test + partnership draft in CricHeroes handoff §13. Android Share payload **not yet observed** on a real phone.
+- Public dues board `#/board` (names + amounts + matches; no mobiles). Bell + session popup for pending/refunds. Settlement **Mark unsettled** deletes last settlement payment. WhatsApp pay line is UPI ID only. Deploy **rules** then frontend.
