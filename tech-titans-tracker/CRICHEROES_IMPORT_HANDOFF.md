@@ -2,7 +2,7 @@
 
 Fresh agents: read this + [`AGENT_HANDOFF.md`](AGENT_HANDOFF.md). Do **not** re-litigate decisions below unless the user changes them.
 
-**Last updated:** 2026-08-21 (URL-import + Android-app integration analysis; see §12–§13).
+**Last updated:** 2026-08-21 (HTML import; header Import Preview **removed**; URL/Android analysis in §12–§13).
 
 ---
 
@@ -18,8 +18,8 @@ Import a CricHeroes scorecard into a Tech Titans Tracker tournament match with m
 |---|---|
 | HTML upload + client parser | Done |
 | Matches-tab full wizard | Done |
-| Header “Import Preview” (parse-only) | Kept |
-| Upload caution: save from **Scorecard** tab | Done (wizard + Import Preview) |
+| Header “Import Preview” (parse-only) | **Removed** (2026-08-21) — Matches wizard is the only import UI |
+| Upload caution: save from **Scorecard** tab | Done (wizard only) |
 | Bill step: dynamic “N of M selected” count | Done |
 | `cricheroesPlayerMaps` + rules | Code done — user must `npm run rules:deploy` |
 | Frontend on gh-pages | User runs `npm run deploy` |
@@ -50,14 +50,14 @@ Live: `https://pakshith33.github.io/tech-titans-tracker`
    2. **Team** — auto-selects “Tech Titans” when present; admin confirms
    3. **Map** — fuzzy + saved maps; edit; new player (name + **required** mobile); Activate inactive; click **Save mappings**
    4. **Bill** — all selected by default; live count **“N of M players selected for billing”**; optional additional ₹; **Create match**
-5. Header **Import Preview** still exists for parse-only checks (same Scorecard-tab caution; no create).
+5. Header **Import Preview** was removed; do not add it back unless asked.
 
 ---
 
 ## 4. Confirmed decisions (do not re-ask unless user wants change)
 
 1. **Input:** upload saved scorecard HTML — **not** live URL (403 from Cloud Functions). Save from the match **Scorecard** tab only (caution shown in UI).
-2. **Entry:** tournament **Matches** tab; keep header Import Preview for now.
+2. **Entry:** tournament **Matches** tab only. Header Import Preview **removed**.
 3. **Team:** auto-select Tech Titans when present; admin must confirm.
 4. **Players shown:** batters + “Yet to Bat” for selected team.
 5. **Mapping:** fuzzy match + durable Firestore maps; always show mapping UI; admin can edit and **Save** (overwrites prior map).
@@ -103,7 +103,7 @@ Live: `https://pakshith33.github.io/tech-titans-tracker`
 | [`src/CricHeroesImportWizard.js`](src/CricHeroesImportWizard.js) | Full import wizard UI |
 | [`src/parseCricHeroesScorecard.js`](src/parseCricHeroesScorecard.js) | Browser HTML → `{ matchId, matchName, date, teams[] }` |
 | [`src/cricheroesFuzzy.js`](src/cricheroesFuzzy.js) | Fuzzy rank + map keys + stored map lookup |
-| [`src/App.js`](src/App.js) | Wires wizard in Matches tab; maps sync; header Import Preview modal; `firebaseSaveCricheroesMaps` |
+| [`src/App.js`](src/App.js) | Wires wizard in Matches tab; maps sync; `firebaseSaveCricheroesMaps` (no header preview modal) |
 | [`firestore.rules`](firestore.rules) | Includes `cricheroesPlayerMaps` |
 | [`Sample Scorecard.html`](Sample%20Scorecard.html) | Fixture for parser tests |
 | [`functions/`](functions/) | Callable URL fetch+parse — **unused** after 403; see [`FUNCTIONS_SETUP.md`](FUNCTIONS_SETUP.md) |
@@ -133,7 +133,6 @@ Live: `https://pakshith33.github.io/tech-titans-tracker`
 
 - **Bookmarklet / tiny extension (path A)** so the Scorecard tab can send HTML into the wizard without File → Save As. Keep HTML upload as fallback.
 - Optional: email `partnerships@cricheroes.in` (path C) for an official match feed.
-- Remove header Import Preview once Matches wizard is trusted.
 - Delete unused Cloud Function / tidy `FUNCTIONS_SETUP.md`.
 - Improve fuzzy matching edge cases / mapping UX polish.
 - Bulk import multiple HTML files.

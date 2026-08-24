@@ -1,6 +1,6 @@
 # CricHeroes Function — Blaze setup & deploy (other computer)
 
-> **Status (2026-08-21):** The callable was deployed and tested. CricHeroes/Cloudflare returns **HTTP 403** to Cloud Functions **and** to other datacenter fetches, so **product import uses HTML upload**. Paste-URL auto-download is **not** being built. Next friction-reduction path (if asked): browser bookmarklet. See [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md) §12. The Function remains deployed per user request but is **unused**.
+> **Status (2026-08-21):** Callable still deployed and unused (CricHeroes 403). Product import is **Matches → Import CricHeroes** (HTML). Header **Import Preview** / in-app **Test CH Import** were removed — use curl + ID token helpers if they still exist, or skip Function tests. See [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md).
 
 Function-only slice (historical). App import UI is separate.
 
@@ -95,18 +95,9 @@ After deploy, Console → **Functions** should show `parseCricHeroesScorecard` i
 
 ---
 
-## C. Easiest smoke test (in the app — no curl)
+## C. Function smoke test
 
-After pulling the latest frontend code and running `npm start` (or deploying gh-pages):
-
-1. Sign in as an admin.
-2. Click **Test CH Import** (top right, next to Sign Out).
-3. Keep/paste a CricHeroes scorecard URL.
-4. Click **Run test**.
-5. You’ll see **SUCCESS** + JSON, or **FAILED** + error JSON (`code`, `message`, `details`).
-6. Click **Copy result** and paste that JSON to the agent if it fails.
-
-This uses your signed-in Firebase session automatically (no ID token / curl).
+In-app **Test CH Import** / Import Preview is **gone**. Skip Function tests unless needed. Optional: sign in → DevTools `window.__ttGetIdToken()` (if present) → curl below.
 
 ### C-alt. Curl test (optional)
 
@@ -116,7 +107,7 @@ Callable endpoints require a Firebase Auth ID token for a user whose email exist
 
 The app uses the **modular** Firebase SDK, so `firebase` is **not** defined in the browser console.
 
-Prefer the in-app **Test CH Import** button above. If you still need a raw token:
+Prefer curl below if you still need to hit the Function. To get a raw token:
 
 1. Sign in to the app as an admin.
 2. DevTools → **Console**:
@@ -132,7 +123,7 @@ await window.__ttGetIdToken()    // prints full token
 ```bash
 cd tech-titans-tracker/tech-titans-tracker
 npm start
-# open http://localhost:3000 → sign in → use Test CH Import
+# open http://localhost:3000 → sign in → DevTools helpers if present
 ```
 
 Local `npm start` is enough; you do **not** need gh-pages deploy just to test the Function.
