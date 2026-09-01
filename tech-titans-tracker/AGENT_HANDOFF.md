@@ -2,7 +2,7 @@
 
 This file exists so a fresh agent session (or a future you) can pick up this project without re-reading the entire chat history. It captures the current state, the reasoning behind key decisions, and known constraints/gotchas.
 
-Last updated: 2026-08-21. Public `#/board`, bell notifications, settlement revert, WhatsApp UPI-ID-only. CricHeroes: HTML upload only (no URL fetch); header Import Preview **removed**. See [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md).
+Last updated: 2026-09-01. CricHeroes: HTML upload only (no URL fetch); scraping APIs analysed not built ([`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md) §12a). Android home-screen icon / Play Store later: analysed not built (§15). Header Import Preview **removed**.
 
 ## 1. What this app is
 
@@ -88,8 +88,9 @@ Still present: match/player filters & sorts, clone match/tournament, match delet
 
 ## 9. Explicitly NOT built (ask first)
 
-- Charts; non-tournament club expenses; membership fees; admin vs viewer roles; PWA; in-app admins UI; WhatsApp Business API.
-- Live CricHeroes **paste-URL** import (Cloudflare 403 + CORS). HTML upload is the path; bookmarklet only if asked.
+- Charts; non-tournament club expenses; membership fees; admin vs viewer roles; in-app admins UI; WhatsApp Business API.
+- **PWA / Play Store APK** — not built; analysis and recommended path in §15. Do not implement until the user asks and supplies icon art if needed.
+- Live CricHeroes **paste-URL** import (Cloudflare 403 + CORS). HTML upload is the path. Scraping APIs: analysis only ([`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md) §12a); bookmarklet only if asked. Do not wire ZenRows/ScrapingBee unless the user explicitly chooses path B.
 - Integration **inside** the official CricHeroes Android app. Header **Import Preview** was removed (wizard remains).
 - True animated GIF files on `#/board` — header uses AI **stills** in `public/cricket-*-header.png` plus CSS motion.
 
@@ -120,7 +121,7 @@ Still present: match/player filters & sorts, clone match/tournament, match delet
 - Matches → **Import CricHeroes** only (header Import Preview **removed** 2026-08-21).
 - Saved HTML must be from the **Scorecard** tab.
 - `cricheroesPlayerMaps` + unique `matches.cricheroesMatchId`.
-- No live URL fetch (403). Bookmarklet / Android-in-app integration: not built. Android Share test still not run on a real phone.
+- No live URL fetch (403). Bookmarklet / Android-in-app (CricHeroes) integration: not built. Scraping-API analysis 2026-09-01: not wired. Android Share test still not run on a real phone.
 - Cloud Function still deployed, unused.
 
 ## 13. Notifications (admin header)
@@ -136,3 +137,39 @@ Still present: match/player filters & sorts, clone match/tournament, match delet
 - Per expanded player: each tournament payment status + match table (name, date, played yes/no, share ₹).
 - Header: counts + names for In progress (`Ongoing`), Upcoming, Completed (non-archived).
 - After rules deploy, an admin must sign in once so `playerDirectory` backfills.
+
+## 15. Android home-screen icon / Play Store (analysis 2026-09-01)
+
+**User intent (do not assume further):** easy access **icon on the phone now**, **Play Store later**, installers = **a few admins** who can be instructed in person.
+
+**Not built.** This is **this** tracker (GitHub Pages), not putting anything inside the CricHeroes APK (see CricHeroes handoff §13).
+
+### Current site
+
+- Live: `https://pakshith33.github.io/tech-titans-tracker` (HTTPS).
+- [`public/manifest.json`](public/manifest.json) already has `name` / `short_name`, `display: "standalone"`, `start_url: "."`. [`public/index.html`](public/index.html) links the manifest.
+- **No service worker** (`src/index.js` does not register one) → Chrome often **won’t** show “Install app”.
+- Manifest references `favicon.ico`, `logo192.png`, `logo512.png`, but those files were **missing** from `public/` as of this note → generic/blank icon until real PNGs exist.
+
+Admins can still Chrome → ⋮ → **Add to Home screen** today; it may feel like a browser shortcut until a proper PWA.
+
+### Options (ranked for this club)
+
+| Path | What you get | When to use |
+|---|---|---|
+| 1. Add to Home screen | Icon this week, no Play | Fine for a few admins + a WhatsApp how-to |
+| 2. **PWA** (recommended next *if asked*) | Install prompt, standalone window, same Firebase | Small build: 192×192 + 512×512 (maskable) icons, register SW; respect `homepage` `/tech-titans-tracker/` for SW scope |
+| 3. Play Store **TWA / Bubblewrap** | Store listing that opens the **same HTTPS site** | After PWA works on one Android phone. Needs Digital Asset Links on the site, Play Console (~$25 one-time), privacy policy, screenshots. **No Kotlin rewrite.** |
+| 4. Capacitor / Cordova APK | Native project + signing + dual deploy | Only if we need camera, Share-target, or on-device HTML. **Not** needed for an icon alone |
+| 5. Native rewrite | — | Do not |
+
+### Open before implementing PWA (ask; do not assume)
+
+- Icon art: cricket-ball header vs a square logo PNG the user will provide.
+- iPhone Add to Home Screen as well (extra Apple tags).
+- User must say **implement** — analysis only until then.
+
+### Do not
+
+- Treat CricHeroes Play listing as this app.
+- Ship Play Store before PWA install is verified on a real Android device.

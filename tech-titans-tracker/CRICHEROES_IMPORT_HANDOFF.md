@@ -2,7 +2,7 @@
 
 Fresh agents: read this + [`AGENT_HANDOFF.md`](AGENT_HANDOFF.md). Do **not** re-litigate decisions below unless the user changes them.
 
-**Last updated:** 2026-08-21 (HTML import; header Import Preview **removed**; URL/Android analysis in §12–§13).
+**Last updated:** 2026-09-01 (HTML import still the product path. Scraping-API analysis in §12a. CricHeroes Android vs *this* app’s home-screen icon: see [`AGENT_HANDOFF.md`](AGENT_HANDOFF.md) §15).
 
 ---
 
@@ -132,6 +132,7 @@ Live: `https://pakshith33.github.io/tech-titans-tracker`
 ## 9. Likely next work (only if user asks)
 
 - **Bookmarklet / tiny extension (path A)** so the Scorecard tab can send HTML into the wizard without File → Save As. Keep HTML upload as fallback.
+- Scraping APIs (ZenRows / ScrapingBee): **analysis only** in §12a — do **not** wire URL fetch unless the user explicitly chooses path B after a successful HTML compare.
 - Optional: email `partnerships@cricheroes.in` (path C) for an official match feed.
 - Delete unused Cloud Function / tidy `FUNCTIONS_SETUP.md`.
 - Improve fuzzy matching edge cases / mapping UX polish.
@@ -145,7 +146,7 @@ Live: `https://pakshith33.github.io/tech-titans-tracker`
 
 - Paste-URL-only import on GitHub Pages + Cloud Functions (blocked: browser CORS + Cloudflare 403 on datacenter IPs).
 - Official CricHeroes API / partnership (contact exists; no public API found).
-- Paid proxies / web unlockers to bypass 403 for live URL (path **B** — not chosen; monthly min + ToS).
+- Path **B** live URL via unlockers / scraping APIs — **not built**. Free-tier analysis in §12a; still ToS + unproven HTML. Do not implement unless the user explicitly opts in.
 - Teams-tab HTML.
 - WhatsApp / settlement changes for import.
 - Role-based access beyond `admins` whitelist.
@@ -175,13 +176,39 @@ Why paste-URL in the app is not a free/reliable build:
 
 **Logged-out vs login (path A/B check):** Not verifiable from this environment (WAF blocks the fetch). Indirect evidence only: [`Sample Scorecard.html`](Sample%20Scorecard.html) was saved from `…/scorecard/26150403/…/scorecard` and is a full Scorecard DOM (Hawks / Tech Titans, batting, Yet to Bat) with **no** login-wall copy in the file. A real Chrome session on a residential IP could load that match; whether a **logged-out** visitor can is still unknown — confirm in a normal browser (incognito, not signed in) before relying on any server-side fetch.
 
-**Path B HTML compare:** Skipped — paid unlocker was not chosen. Do not wire live fetch until a successful fetch’s HTML is compared to the sample fixture.
+**Path B HTML compare:** Still not done. Do not wire live fetch until a successful fetch’s HTML is compared to [`Sample Scorecard.html`](Sample%20Scorecard.html) (match id `26150403`, both teams, batting + Yet to Bat).
+
+### 12a. Scraping APIs (ZenRows / ScrapingBee) — analysis 2026-09-01
+
+**Not implemented. Product path remains HTML upload.** This only answers whether a scraper API could replace the blocked Cloud Function GET.
+
+**What already failed (fetch, not parse):** Callable `parseCricHeroesScorecard` in `asia-south1` uses a plain `fetch` + User-Agent from GCP. Auth OK → HTTP **403** / ~4.5KB challenge (`http_not_ok` / `html_too_small`). GitHub Pages cannot `fetch` CricHeroes (CORS). Parser + wizard already work on saved Scorecard HTML.
+
+**Technical fit:** These APIs call from the **Cloud Function** (not the SPA), return HTML, then existing `parseScorecardHtml`. They use residential/stealth proxies + JS render aimed at Cloudflare. **Success on cricheroes.com is unproven** until one real scorecard URL is fetched and compared to the sample. Logged-out vs login still unknown.
+
+| Service | “Free” (as of 2026-09 docs) | Hard page (CF + JS) | ~Club volume (4–5 imports/mo) |
+|---|---|---|---|
+| **ZenRows** | Recurring **5,000 credits/mo**, no card | **25 credits** if JS + premium (“protected”) | Volume enough **if** HTML is a full scorecard |
+| **ScrapingBee** | **1,000 credits once** (trial); paid from ~$49/mo | JS 5; premium+JS 25; stealth 75 | Trial = **proof only**, not an ongoing $0 path |
+| ScraperAPI / Bright Data | Signup / small monthly credits | Multipliers; unlockers | Overkill; same ToS/proof issues |
+
+**Why not plug in yet**
+
+1. Path B was declined for **ToS** as well as cost. A free tier removes the monthly bill, not “bypass their WAF.” Vendors require complying with the **target site’s** terms. Partnership email must **not** ask CricHeroes to help scrape.
+2. Saved Next.js Scorecard HTML ≠ live rendered HTML; parse can still be `incomplete_parse`.
+3. CAPTCHA/challenge pages can be billed as success.
+4. If free credits fail on CF, you are back on **~$19–$49/mo**.
+5. API keys, timeouts, retries in Functions — extra ops for a few matches/month.
+
+**If the user later opts into a budget experiment:** ZenRows free 5k/mo is the only named option that matches ongoing $0 volume. ScrapingBee is a one-shot trial. Require a **manual** playground/curl result (status, HTML size, batting names present) **before** any code. Safer alternatives remain path **A** (bookmarklet — browser already has HTML) and path **C** (partnerships).
+
+**Do not** call these APIs against CricHeroes from an agent environment as a substitute for the user’s opt-in + HTML compare.
 
 ---
 
 ## 13. Official CricHeroes Android app (2026-08-21)
 
-Play Store package: `com.cricheroes.cricheroes.alpha`. Tech Titans Tracker is **GitHub Pages**, not an Android app.
+Play Store package: `com.cricheroes.cricheroes.alpha`. Tech Titans Tracker is **GitHub Pages**, not an Android app. **This tracker’s** home-screen icon / future Play listing (PWA then TWA) is analysed in [`AGENT_HANDOFF.md`](AGENT_HANDOFF.md) §15 — that is not CricHeroes.
 
 ### Cannot do
 

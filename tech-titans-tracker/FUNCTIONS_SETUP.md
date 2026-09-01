@@ -1,6 +1,6 @@
 # CricHeroes Function — Blaze setup & deploy (other computer)
 
-> **Status (2026-08-21):** Callable still deployed and unused (CricHeroes 403). Product import is **Matches → Import CricHeroes** (HTML). Header **Import Preview** / in-app **Test CH Import** were removed — use curl + ID token helpers if they still exist, or skip Function tests. See [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md).
+> **Status (2026-09-01):** Callable still deployed and unused (CricHeroes 403 from GCP). Product import is **Matches → Import CricHeroes** (HTML). Scraping APIs (ZenRows/ScrapingBee) were **analysed only** — not wired; see [`CRICHEROES_IMPORT_HANDOFF.md`](CRICHEROES_IMPORT_HANDOFF.md) §12a. Header **Import Preview** / in-app **Test CH Import** were removed — use curl + ID token helpers if they still exist, or skip Function tests.
 
 Function-only slice (historical). App import UI is separate.
 
