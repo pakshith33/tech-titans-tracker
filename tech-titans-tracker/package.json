@@ -45,7 +45,7 @@
     ]
   },
   "devDependencies": {
-    "firebase-tools": "^15.24.0",
+    "firebase-tools": "^15.36.0",
     "gh-pages": "^6.3.0"
   }
 }
